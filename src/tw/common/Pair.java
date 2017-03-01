@@ -10,7 +10,7 @@ public class Pair< F, S > {
 		this.first = first;
 		this.second = second;
 	}
-	
+	@SuppressWarnings( "unchecked" )
 	@Override
 	public boolean equals(Object obj) {
 		return ((Pair< F, S >)obj).first.equals( first ) && ((Pair<F, S>)obj).second.equals( second );

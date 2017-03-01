@@ -105,13 +105,13 @@ public class Solver {
 	
 	public static void main(String[] args) {
 		Solver solver = new Solver();
-		long start = System.currentTimeMillis();
-		int sol = solver.solve( Instance.read( args[ 0 ] ) );
-//		int sol = solver.solveComponent( Instance.read( ) );
-		long end = System.currentTimeMillis();
-		System.out.println("#name = " + args[ 0 ]  + ", sol = " +  sol + ", time = " + (end - start) + " msec" );
-		//		for (Pair<String, String> e: solver.fillEdges) {
-		//	System.out.println(e.first + " " + e.second);
-		//}
+		//		long start = System.currentTimeMillis();
+		//		int sol = solver.solve( Instance.read( args[ 0 ] ) );
+		int sol = solver.solveComponent( Instance.read( ) );
+		//		long end = System.currentTimeMillis();
+		//		System.out.println("#name = " + args[ 0 ]  + ", sol = " +  sol + ", time = " + (end - start) + " msec" );
+		for (Pair<String, String> e: solver.fillEdges) {
+				System.out.println(e.first + " " + e.second);
+		}
 	}
 }
