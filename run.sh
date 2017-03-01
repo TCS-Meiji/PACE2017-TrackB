@@ -1,3 +1,3 @@
 #!/bin/sh
 
-java -Xss256M -XX:+UseSerialGC -cp ./bin fillin/main/Solver $1
+java -Xss256m -cp ./bin fillin/main/Solver
