@@ -3,7 +3,7 @@ Track B: Minimum Fill-In
 
 ## Description
 This software computes a minimum fill-in of graphs.
-The code will be submitted to [Track B of PACE 2017](https://pacechallenge.wordpress.com/pace-2017/track-b-minimum-fill-in/).
+The code will be submitted to [Track B of PACE 2017](https://pacechallenge.wordpress.com/pace-2017/track-b-minimum-fill-in/) and will be available on a public source code repository on the final submission.
 
 ## Requirement
 Java 1.8 or higher
@@ -19,7 +19,7 @@ Run run.sh. The graph is given from the standard input.
 ```
 ./run.sh < 1.graph
 ```
-Please see [Track B of PACE 2017](https://pacechallenge.wordpress.com/pace-2017/track-b-minimum-fill-in/) for the input graph format.
+Please see [here](https://pacechallenge.wordpress.com/pace-2017/track-b-minimum-fill-in/) for the input graph format.
 
 ## Author
 Yasuaki Kobayashi and Hisao Tamaki
