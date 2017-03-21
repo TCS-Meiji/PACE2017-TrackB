@@ -21,7 +21,9 @@ public class Decomposer {
 	static final boolean VERBOSE = true;
 	//  private static final boolean VERBOSE = false;
 	private static boolean DEBUG = false;
-	//	static boolean DEBUG = true;
+//		static boolean DEBUG = true;
+	
+	private static double alpha = 1.8;
 
 	LabeledGraph g;
 
@@ -64,13 +66,13 @@ public class Decomposer {
 		int upperbound = g.n * (g.n - 1) / 2 - g.edges();
 		for (tentativeUB = 1; 
 			 tentativeUB <= upperbound;
-			 tentativeUB = Math.min(upperbound, tentativeUB * 2)) {
+			 tentativeUB = Math.min(upperbound, 1 + (int)(tentativeUB * alpha))) {
 			mBlockMap = new HashMap<>();
+			tBlockMap = new HashMap<>();
+			tBlockSieve = new BlockSieve(g.n);
 			pmcMap = new HashMap<>();
 			pmcQueue = new TreeSet<>();
 
-			tBlockMap = new HashMap<>();
-			tBlockSieve = new BlockSieve(g.n);
 
 			readyQueue = new LinkedList<>();
 			for (int v = 0; v < g.n; v++) {
@@ -97,7 +99,13 @@ public class Decomposer {
 				// have been generated
 				// (3) all PMCs whose all inbound M-blocks as in (1)
 				// have been generated
-
+				
+//				if (DEBUG) {
+//					System.out.println("target cost: " + targetCost + "/" + tentativeUB);
+//				}
+				
+//				System.out.println("mBlockMap = " + mBlockMap.size() + " tBlockMap = " + tBlockMap.size() + " pmcMap = " + pmcMap.size());
+					
 				while (true) {
 					ArrayList<PMC> toConsider = new ArrayList<>();
 					while (!pmcQueue.isEmpty()) {
@@ -209,7 +217,7 @@ public class Decomposer {
 	private boolean isPMC(XBitSet separator) {
 		ArrayList<Block> blockList = getBlocks(separator);
 		for (int v = separator.nextSetBit(0); v >= 0; v = separator.nextSetBit(v + 1)) {
-			// rest is the subset of vertices of separator each of which
+			// rest is the subset of separator each of which
 			// is not adjacent to v and whose index is greater than that of v.
 			// For each w in rest, there is a separator S with {v, w} \subseteq S in blockList.
 			XBitSet rest = separator.subtract( g.neighborSet[v] ); 
@@ -261,8 +269,7 @@ public class Decomposer {
 					// full block other than "component" found
 					if (v < minCompo) {
 						outbound = c.subtract(separator);
-					}
-					else {
+					} else {
 						// v > minCompo
 						outbound = component;
 					}
@@ -333,10 +340,6 @@ public class Decomposer {
 			makeSimpleTBlock();
 
 			tBlockSieve.collectSuperblocks(inbound, separator, new ArrayList<>()).forEach(tBlock -> tBlock.plugin( this ));
-
-			//			LinkedList< TBlock > tBlocks = new LinkedList<>();
-			//			tBlockTrie.collectSuperSet( inbound , tBlocks );
-			//			tBlocks.forEach(tBlock -> tBlock.plugin(this));
 		}
 
 		void makeSimpleTBlock() {
@@ -351,7 +354,6 @@ public class Decomposer {
 				if (tBlock.relevant()) {
 					tBlockMap.put(separator, tBlock);
 					tBlockSieve.put(outbound, tBlock);
-					//        tBlockTrie.put( outbound, tBlock );
 					tBlock.crown();
 				} else {
 					if (DEBUG) {
@@ -398,8 +400,7 @@ public class Decomposer {
 						// cost of the inbound block is at least the
 						// current target (otherwise it would already be optimal)
 						cost += targetCost;
-					}
-					else {
+					} else {
 						cost += mBlock.cost;
 					}
 				}
@@ -447,11 +448,9 @@ public class Decomposer {
 					if (tBlock.relevant()) {
 						tBlockSieve.put(fullBlock.component, tBlock);
 						tBlockMap.put(newsep, tBlock);
-						//        tBlockTrie.put(fullBlock.component, tBlock);
 						tBlock.crown();
 					}
 				}
-
 			} else {
 				if (isPMC( newsep ) == false) {
 					return;

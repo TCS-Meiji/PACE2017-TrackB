@@ -2,13 +2,11 @@ package tw.common;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Stack;
 
 import fillin.main.Instance;
-import fillin.main.UnionFind;
 
 public class LabeledGraph extends Graph {
-	
-	private static final boolean DEBUG = false;
 	
 	private String[] labels;
 	private boolean[] visited;
@@ -16,7 +14,7 @@ public class LabeledGraph extends Graph {
 	public LabeledGraph(String[] labels)
 	{
 		super( labels.length );
-		Arrays.sort( labels, (a, b) -> Integer.parseInt( a ) - Integer.parseInt( b ) ); // TODO: sort by lexicographic order
+		Arrays.sort( labels );
 		this.labels = labels;
 	}
 	
@@ -31,8 +29,8 @@ public class LabeledGraph extends Graph {
 
 	public void addEdge(String u, String v)
 	{
-		int uid = Arrays.binarySearch( labels, u, (a, b) -> Integer.parseInt( a ) - Integer.parseInt( b ) ); // TODO
-		int vid = Arrays.binarySearch( labels, v, (a, b) -> Integer.parseInt( a ) - Integer.parseInt( b ) ); // TODO
+		int uid = Arrays.binarySearch( labels, u );
+		int vid = Arrays.binarySearch( labels, v );
 		super.addEdge( uid, vid );
 	}
 	
@@ -41,18 +39,103 @@ public class LabeledGraph extends Graph {
 		return labels[ v ];
 	}
 	
+	private int[] num;
+	private int[] low;
+	private int time;
+	private ArrayList< XBitSet > components;
+	private Stack< Integer > st;
+	
+	public ArrayList< XBitSet > decomposeByCutPoints()
+	{
+		components = new ArrayList< >();
+		num = new int[ n ];
+		low = new int[ n ];
+		st = new Stack<>();
+		
+		for (int u = 0; u < n; u++) {
+			if (num[ u ] == 0) {
+				time = 0;
+				visitForCut( -1, u );
+			}
+		}
+		
+		return components;
+	}
+	
+	private void visitForCut(int p, int u)
+	{
+		low[ u ] = num[ u ] = ++time;
+		st.push( u );
+		for (int v: neighbor[ u ]) {
+			if (num[ v ] == 0) {
+				visitForCut( u, v );
+				low[ u ] = Math.min( low[ u ], low[ v ] );
+				if (low[ v ] >= num[ u ]) {
+					XBitSet bcomp = new XBitSet( n );
+					bcomp.set( u );
+					while (true) {
+						int w = st.pop();
+						bcomp.set( w );
+						if (w == v) {
+							break;
+						}
+					}
+					components.add( bcomp );
+				}
+			} else {
+				low[ u ] = Math.min( low[ u ], num[ v ] );
+			}
+		}
+	}
+	
+	private int[] low2;
+	private int[] low3;
+	private int[] low3e;
+	private int[] parent;
+	public ArrayList< XBitSet > decomposeByBiCutPoints()
+	{
+		components = new ArrayList<>();
+		num = new int[ n ];
+		low2 = new int[ n ];
+		low3 = new int[ n ];
+		int m = edges();
+		int[] low3e = new int[ m ];
+		time = 0;
+		visitForBiCut(0, -1);
+		return components;
+	}
+	
+	private void visitForBiCut(int w, int v)
+	{
+		low2[ w ] = low3[ w ] = num[ w ] = ++time;
+		parent[ w ] = v;
+		for (int u: neighbor[ w ]) {
+			if (num[ u ] == 0) { // (w, u) is a tree edge
+				// e *= {e}
+			} else {
+				
+			}
+		}
+	}
+	
+	private class E {
+		int u, v;
+		int id;
+	}
+
 	/**
 	 * computes a clique separator decomposition of this graph.
 	 * This method returns an ArrayList whose elements of the form { XBitSet1, XBitSet2 }
 	 * where XBitSet2 is a clique separator and XBitSet1 is its component.
 	 * This method implements an O(nm) time algorithm given by [Tarjan 85]
 	 */
-	public ArrayList< XBitSet[] > decomposeByCliqueSeparators()
+	public ArrayList< XBitSet > decomposeByCliqueSeparators()
 	{
-		ArrayList< XBitSet[] > components = new ArrayList< XBitSet[] >();
+		ArrayList< XBitSet > components = new ArrayList< XBitSet >();
 		XBitSet[] filledGraph = mcs_m();
 		XBitSet B = (XBitSet)all.clone();
 		XBitSet high = (XBitSet)all.clone();
+		
 		for (int i = 0; i < n; i++) {
 			int v = alpha[ i ];
 			if (B.get( v ) == false) {
@@ -68,20 +151,14 @@ public class LabeledGraph extends Graph {
 				XBitSet A = separate( v, B, new XBitSet() );
 				XBitSet nB = B.subtract( C ).subtract( A );
 				if (nB.isEmpty() == false) {
-					components.add( new XBitSet[]{ A, C } );
+					components.add( A.unionWith( C ) );
 					B = B.subtract( A );
 				}
 			}
 		}
 
 		if (B.isEmpty() == false) {
-			components.add( new XBitSet[]{ B, new XBitSet() } );
-		}
-		
-		if (DEBUG) {
-			for (XBitSet[] comp: components) {
-				System.out.println( comp[ 0 ] + " " + comp[ 1 ] );
-			}
+			components.add( B );
 		}
 		
 		return components;
@@ -100,7 +177,7 @@ public class LabeledGraph extends Graph {
 		
 	}
 
-	private boolean isClique(XBitSet C)
+	public boolean isClique(XBitSet C)
 	{
 		for (int u = C.nextSetBit( 0 ); u >= 0; u = C.nextSetBit( u + 1 )) {
 			C.clear( u );
@@ -114,7 +191,7 @@ public class LabeledGraph extends Graph {
 	}
 
 	/**
-	 * computes a minimal fill-in by MCS-M given by [Berry et al. 2002]
+	 * computes a minimal fill-in by MCS-M [Berry et al. 2002]
 	 */
 	private int[] alpha;
 	private XBitSet[] mcs_m()
@@ -333,21 +410,12 @@ public class LabeledGraph extends Graph {
 		}
 		return sb.toString();
 	}
-
 	
-	public static void main(String[] args)
-	{
-//		for (int i = 1; i <= 100; i++) {
-//			LabeledGraph g = Reader.read( "instances/" + i + ".graph" );
-//			long time = System.nanoTime();
-//			g.getComponents( new XBitSet() );
-//			time = System.nanoTime() - time;
-//			System.out.println( time );
-//		}
-		LabeledGraph g = Instance.read();
-		ArrayList< XBitSet[] > comps = g.decomposeByCliqueSeparators();
-		for (XBitSet[] comp: comps) {
-			System.out.println( comp[ 0 ] + " " + comp[ 1 ] );
+	public static void main(String[] args) {
+		LabeledGraph g = Instance.read("instances/35.graph");
+		for (XBitSet comp: g.decomposeByCutPoints()) {
+			System.out.println( comp );
 		}
 	}
+
 }

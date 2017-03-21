@@ -9,6 +9,7 @@ import java.util.Stack;
 
 import fillin.branch.Vertex;
 import fillin.branch.VertexSet;
+import fillin.main.Instance;
 
 public class Branching {
 	
@@ -363,17 +364,14 @@ public class Branching {
 	}
 	
 	public static void main(String[] args) {
-		Vertex[] g = Reader.read();
-		Branching moplex = new Branching( g );
-		for (int k = 0; k <= 10; k++) {
-			System.out.println("Trying to " + k);
-			if (moplex.solve( k )) {
-				String[][] edges = moplex.edges;
-				for (String[] edge: edges) {
-					System.out.println( edge[ 0 ] + " " + edge[ 1 ] );
-				}
-				System.out.println("opt: " + k);
+		Vertex[] g = Reader.read("instances/90.graph");
+		Branching br = new Branching( g );
+		for (int k = 0; k < 100; k++) {
+			if (br.solve(k)) {
+				System.out.println(k + " true");
 				return;
+			} else {
+				System.out.println(k + " false");
 			}
 		}
 	}

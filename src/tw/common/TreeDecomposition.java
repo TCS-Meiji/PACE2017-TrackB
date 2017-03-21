@@ -3,13 +3,6 @@
  */
 package tw.common;
 
-import java.io.BufferedReader;
-
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.FileReader;
-import java.io.IOException;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -688,85 +681,6 @@ public class TreeDecomposition {
 			}
 		}
 		return -1;
-	}
-
-	/**
-	 * Reads the tree-decomposition for a given graph from
-	 * a file at a given path and with a given name, in the
-	 * PACE .gr format; the extension .gr is added to the name.
-	 * @param path path at which the file is found
-	 * @param name file name, without the extension
-	 * @param g graph
-	 * @return the tree-decomposition read
-	 */
-	public static TreeDecomposition readDecomposition(String path, String name, Graph g) {
-		File file = new File(path + "/" + name + ".td");
-		try {
-			BufferedReader br = new BufferedReader(new FileReader(file));
-			String line = br.readLine();
-			while (line.startsWith("c")) {
-				line = br.readLine();
-			}
-			if (line.startsWith("s")) {
-				String s[] = line.split(" ");
-				if (!s[1].equals("td")) {
-					throw new RuntimeException("!!Not treewidth solution " + line);
-				}
-				int nb = Integer.parseInt(s[2]);
-				int width = Integer.parseInt(s[3]) - 1;
-				int n = Integer.parseInt(s[4]);
-
-				System.out.println("nb = " + nb + ", width = " + width + ", n = " + n);
-				TreeDecomposition td = new TreeDecomposition(0, width, g);
-
-				for (int i = 0; i < nb; i++) {
-					line = br.readLine();
-					while (line.startsWith("c")) {
-						line = br.readLine();
-					}
-					s = line.split(" ");
-
-					if (!s[0].equals("b")) {
-						throw new RuntimeException("!!line starting with 'b' expected");
-					}
-
-					if (!s[1].equals(Integer.toString(i + 1))) {
-						throw new RuntimeException("!!Bag number " + (i + 1) + " expected");
-					}
-
-					int bag[] = new int[s.length - 2];
-					for (int j = 0; j < bag.length; j++) {
-						bag[j] = Integer.parseInt(s[j + 2]) - 1;
-					}
-					td.addBag(bag);
-				}
-
-				while (true) {
-					line = br.readLine();
-					while (line != null && line.startsWith("c")) {
-						line = br.readLine();
-					}
-					if (line == null) {
-						break;
-					}
-
-					s = line.split(" ");
-
-					int j = Integer.parseInt(s[0]);
-					int k = Integer.parseInt(s[1]);
-
-					td.addEdge(j, k);
-					td.addEdge(k, j);
-				}
-
-				return td;
-			}
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		return null;
 	}
 	
 	public HashSet< Pair< String, String > > computeFill(LabeledGraph g)

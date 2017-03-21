@@ -107,6 +107,12 @@ public class Graph {
 		addToNeighbors(u, v);
 		addToNeighbors(v, u);
 	}
+	
+	public void removeEdge(int u, int v)
+	{
+		removeFromNeighbors(u, v);
+		removeFromNeighbors(v, u);
+	}
 
 	/**
 	 * Add vertex {@code v} to the adjacency list of {@code u}
@@ -135,6 +141,19 @@ public class Graph {
 			neighborSet[v] = new XBitSet(n);
 		}
 		neighborSet[v].set(u);
+	}
+	
+	private void removeFromNeighbors(int u, int v) {
+		int pos = 0;
+		if ((pos = indexOf(v, neighbor[u])) < 0) {
+			return;
+		}
+		degree[u]--;
+		System.arraycopy(neighbor, pos + 1, neighbor, pos, neighbor.length - pos - 1);
+		neighbor[u] = Arrays.copyOf(neighbor[u], degree[u]);
+
+		neighborSet[u].clear(v);
+		neighborSet[v].clear(u);
 	}
 
 	/**
@@ -425,6 +444,12 @@ public class Graph {
 		}
 		return result;
 	}
+	
+	public XBitSet closedNeighborSet(int x) {
+		XBitSet result = (XBitSet)neighborSet[ x ];
+		result.set( x );
+		return result;
+	}
 
 	/**
 	 * Compute connected components of this target graph after
@@ -514,72 +539,6 @@ public class Graph {
 		return result;
 	}
 
-	//	public ArrayList< XBitSet > getComponents(XBitSet separator) {
-	//		ArrayList< XBitSet > result = new ArrayList< XBitSet >();
-	//		boolean[] visited = new boolean[ n ];
-	//		for (int v = separator.nextSetBit( 0 ); v >= 0; v = separator.nextSetBit( v + 1 )) {
-	//			visited[ v ] = true;
-	//		}
-	//
-	//		IntStack stack = new IntStack( n );
-	//		for (int v = 0; v < n; v++) {
-	//			if (visited[ v ] == false) {
-	//				stack.push( v );
-	//				visited[ v ] = true;
-	//				result.add( dfs( visited, stack ) );
-	//			}
-	//		}
-	//		return result;
-	//	}
-	//
-	//	private XBitSet dfs(boolean[] visited, IntStack stack) {
-	//		XBitSet comp = new XBitSet( n );
-	//		while( stack.isEmpty() == false ) {
-	//			int v = stack.pop();
-	//			comp.set( v );
-	//			for (int w: neighbor[ v ]) {
-	//				if (visited[ w ] == false) {
-	//					visited[ w ] = true;
-	//					stack.push( w );
-	//				}
-	//			}
-	//		}
-	//		return comp;
-	//	}
-	//
-	//	class IntStack {
-	//
-	//		private int[] stack;
-	//		private int pt;
-	//
-	//		public IntStack(int n)
-	//		{
-	//			pt = 0;
-	//			stack = new int[ n ];
-	//		}
-	//
-	//		public final void push(final int e)
-	//		{
-	//			stack[ pt++ ] = e;
-	//		}
-	//
-	//		public final int pop()
-	//		{
-	//			return stack[ --pt ];
-	//		}
-	//
-	//		public final int size()
-	//		{
-	//			return pt;
-	//		}
-	//
-	//		public final boolean isEmpty()
-	//		{
-	//			return size() == 0;
-	//		}
-	//
-	//	}
-
 	/**
 	 * Compute the full components associated with the given separator,
 	 * by means of iterated bit operations
@@ -604,18 +563,28 @@ public class Graph {
 				toBeScanned = c.subtract(save);
 				toBeScanned.andNot(separator);
 			}
-			if (separator.isSubset(c)) {
-				result.add(c.subtract(separator));
+			if (separator.isSubset( c )) {
+				result.add( c );
 			}
 			rest.andNot(c);
+		}
+		return result;
+	}
+	
+	public ArrayList<XBitSet> getFullComponents(XBitSet separator, ArrayList<XBitSet> components) {
+		ArrayList<XBitSet> result = new ArrayList<XBitSet>();
+		for (XBitSet comp: components) {
+			if (separator.equals(neighborSet(comp))) {
+				result.add( comp );
+			}
 		}
 		return result;
 	}
 
 	/**
 	 * Checks if the given induced subgraph of this target graph is connected.
-	 * @param vertices the set of vertices inducing the subraph
-	 * @return {@code true} if the subgrpah is connected; {@code false} otherwise
+	 * @param vertices the set of vertices inducing the subgraph
+	 * @return {@code true} if the subgraph is connected; {@code false} otherwise
 	 */
 
 	public boolean isConnected(XBitSet vertices) {
@@ -896,8 +865,6 @@ public class Graph {
 	}
 
 	public static void main(String args[]) {
-		// an example of the use of random graph generation
-		Graph g = randomGraph(80, 1000, 1);
-		g.save("instance/random/gnm_80_1000_1.gr");
+
 	}
 }

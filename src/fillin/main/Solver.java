@@ -1,5 +1,8 @@
 package fillin.main;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.HashSet;
 
@@ -10,14 +13,16 @@ import tw.common.XBitSet;
 public class Solver {
 
 	HashSet< Pair<String, String> > fillEdges;
-	
+	int safe = 0;
 	public Solver() {
 		fillEdges = new HashSet<>();
 	}
 	public int solve(LabeledGraph g)
 	{
+		if (g.n <= 3) {
+			return 0;
+		}
 		ArrayList< XBitSet > components = g.getComponents( new XBitSet() );
-		
 		int nc = components.size();
 		if (nc == 1) {
 			return solveConnected( g );
@@ -26,6 +31,7 @@ public class Solver {
 		LabeledGraph[] graphs = new LabeledGraph[ nc ];
 		for (int i = 0; i < nc; i++) {
 			XBitSet compo = components.get( i );
+			compo = reduceSimplicial(g, compo);
 			int nv = compo.cardinality();
 			String[] labelArray = new String[ nv ];
 			int k = 0;
@@ -45,7 +51,7 @@ public class Solver {
 				}
 			}
 		}
-		
+
 		int res = 0;
 		for (LabeledGraph sg: graphs) {
 			res += solveConnected( sg );
@@ -53,43 +59,96 @@ public class Solver {
 		return res;
 	}
 	
+	private XBitSet reduceSimplicial(LabeledGraph g, XBitSet compo) {
+		XBitSet res = (XBitSet)compo.clone();
+		boolean hasSimplicial = false;
+		for (int u = compo.nextSetBit( 0 ); u >= 0; u = compo.nextSetBit( u + 1 )) {
+			if (g.isClique( compo.intersectWith( g.neighborSet[ u ] ) )) {
+				res.clear( u );
+				hasSimplicial = true;
+			}
+		}
+		if (hasSimplicial) {
+			return reduceSimplicial( g , res );
+		} else {
+			return res;
+		}
+	}
+	
 	public int solveConnected(LabeledGraph g)
 	{
-		ArrayList< XBitSet[] > components = g.decomposeByCliqueSeparators();
-		
-		int nc = components.size();
-		if (nc == 1) {
-			return solveComponent( g );
+		if (g.n <= 3) {
+			return 0;
 		}
 		
-		LabeledGraph[] graphs = new LabeledGraph[ nc ];
-		for (int i = 0; i < nc; i++) {
-			XBitSet compo = components.get( i )[ 0 ].unionWith( components.get( i )[ 1 ] );
-			int nv = compo.cardinality();
-			String[] labelArray = new String[ nv ];
-			int k = 0;
-			int[] conv = new int[ g.n ];
-			for (int v = 0; v < g.n; v++) {
-				if (compo.get(v)) {
-					conv[ v ] = k;
-					labelArray[ k++ ] = g.getLabel( v );
-				}
-			}
-			graphs[ i ] = new LabeledGraph( labelArray );
-			for (int u = compo.nextSetBit( 0 ); u >= 0; u = compo.nextSetBit( u + 1 )) {
-				for (int v = compo.nextSetBit( u + 1 ); v >= 0; v = compo.nextSetBit( v + 1 )) {
-					if (g.areAdjacent( u , v )) {
-						graphs[ i ].addEdge( conv[ u ], conv[ v ] );
-					}
-				}
-			}
+		ArrayList< XBitSet > components = g.decomposeByCutPoints();
+		if (components.size() == 1) {
+			return solveBiConnected( g, g.n, 2 );
 		}
 		
+		LabeledGraph[] graphs = toGraphs( g, components );
 		int res = 0;
 		for (LabeledGraph sg: graphs) {
-			res += solveComponent( sg );
+			res += solveBiConnected( sg, sg.n, 2 );
 		}
+		
 		return res;
+	}
+	
+	public int solveBiConnected(LabeledGraph g, int N, int sep)
+	{
+		if (g.n <= 3) {
+			return 0;
+		}
+		
+		int fill = Preprocessing.fillSafeFillEdge( g, N, sep );
+		safe += fill;
+		ArrayList< XBitSet > components = g.decomposeByCliqueSeparators();
+		
+		if (components.size() == 1) {
+			return solveComponent( g );
+		}
+
+		LabeledGraph[] graphs = toGraphs( g, components );
+		int res = 0;
+		for (LabeledGraph sg: graphs) {
+			res += solveBiConnected( sg, sg.n, sep + 2 );
+		}
+		return res + fill;
+	}
+	
+	private LabeledGraph[] toGraphs(LabeledGraph g, ArrayList< XBitSet > comps)
+	{
+		LabeledGraph[] graphs = new LabeledGraph[ comps.size() ];
+		int k = 0;
+		for (XBitSet comp: comps) {
+			graphs[ k++ ] = toGraph( g, comp );
+		}
+		return graphs;
+	}
+	
+	private LabeledGraph toGraph(LabeledGraph g, XBitSet comp)
+	{
+		comp = reduceSimplicial(g, comp);
+		int nv = comp.cardinality();
+		String[] labelArray = new String[ nv ];
+		int k = 0;
+		int[] conv = new int[ g.n ];
+		for (int v = 0; v < g.n; v++) {
+			if (comp.get(v)) {
+				conv[ v ] = k;
+				labelArray[ k++ ] = g.getLabel( v );
+			}
+		}
+		LabeledGraph graph  = new LabeledGraph( labelArray );
+		for (int u = comp.nextSetBit( 0 ); u >= 0; u = comp.nextSetBit( u + 1 )) {
+			for (int v = comp.nextSetBit( u + 1 ); v >= 0; v = comp.nextSetBit( v + 1 )) {
+				if (g.areAdjacent( u , v )) {
+					graph.addEdge( conv[ u ], conv[ v ] );
+				}
+			}
+		}
+		return graph;
 	}
 	
 	public int solveComponent(LabeledGraph g)
@@ -97,21 +156,24 @@ public class Solver {
 		if (g.isChordal()) {
 			return 0;
 		}
-		
+
 		Decomposer dec = new Decomposer( g );
 		fillEdges.addAll( dec.decompose().computeFill( g ) );
 		return dec.getOpt();
 	}	
 	
-	public static void main(String[] args) {
-		Solver solver = new Solver();
-		//		long start = System.currentTimeMillis();
-		//		int sol = solver.solve( Instance.read( args[ 0 ] ) );
-		int sol = solver.solveComponent( Instance.read( ) );
-		//		long end = System.currentTimeMillis();
-		//		System.out.println("#name = " + args[ 0 ]  + ", sol = " +  sol + ", time = " + (end - start) + " msec" );
-		for (Pair<String, String> e: solver.fillEdges) {
-				System.out.println(e.first + " " + e.second);
+	public static void main(String[] args) throws FileNotFoundException {
+		for (int i = 1; i <= 100; i++) {
+			Solver solver = new Solver();
+			long start = System.currentTimeMillis();
+			String name =  i + ".graph";
+			int sol = solver.solve( Instance.read( "instances/" + name ) );
+	//		int sol = solver.solve( Instance.read( ) );
+			long end = System.currentTimeMillis();
+			System.out.println("#name = " + name  + ", sol = " +  sol + ", time = " + (end - start) + " msec, " + "safe = " + solver.safe);
+	//		for (Pair<String, String> e: solver.fillEdges) {
+	//			System.out.println(e.first + " " + e.second);
+	//		}
 		}
 	}
 }
