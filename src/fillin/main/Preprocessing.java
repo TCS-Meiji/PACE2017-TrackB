@@ -1,14 +1,22 @@
 package fillin.main;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 
 import tw.common.LabeledGraph;
+import tw.common.Pair;
 import tw.common.XBitSet;
 
 public class Preprocessing {
 	
 //	private static final boolean DEBUG = true;
 	private static final boolean DEBUG = false;
+	private static HashSet<Pair<String, String>> safeFill = new HashSet<>();
+	
+	public static HashSet<Pair<String, String>> getSafeFillEdges()
+	{
+		return safeFill;
+	}
 	
 	public static int fillSafeFillEdge(LabeledGraph g, int SIZE, int K)
 	{
@@ -19,10 +27,10 @@ public class Preprocessing {
 			}
 			int D = g.degree[ u ];
 			for (int k = 2; k <= K; k++) {
-				for (int S = KSubSet.initKSubset( k ); KSubSet.hasNext( S , D ); S = KSubSet.nextKSubset( S )) {
+				for (long S = KSubSet.initKSubset( k ); KSubSet.hasNext( S ,D ); S = KSubSet.nextKSubset( S )) {
 					XBitSet sep = new XBitSet( g.n );
 					for (int i = 0; i < D; i++) {
-						if (((S >> i) & 1) == 1) {
+						if (((S >> i) & 1L) == 1L) {
 							sep.set( g.neighbor[ u ][ i ] );
 						}
 					}
@@ -37,6 +45,11 @@ public class Preprocessing {
 										System.out.println("add" + "(" + g.getLabel( v ) + ", " + g.getLabel( w ) + "): " + sep.cardinality());
 									}
 									g.addEdge( v, w );
+									if (g.getLabel( v ).compareTo( g.getLabel( w ) ) < 0) {
+										safeFill.add( new Pair<>( g.getLabel( v ), g.getLabel( w ) ) );
+									} else {
+										safeFill.add( new Pair<>( g.getLabel( w ), g.getLabel( v ) ) );
+									}
 									cnt++;
 									break L;
 								}
@@ -57,21 +70,21 @@ public class Preprocessing {
 	{	
 		private KSubSet(){ }
 		
-		static int nextKSubset(int S)
+		static long nextKSubset(long S)
 		{
-			int x = S & -S;
-			int y = S + x;
+			long x = S & -S;
+			long y = S + x;
 			return ((S & ~y) / x >> 1) | y;
 		}
 		
-		static int initKSubset(int k)
+		static long initKSubset(int k)
 		{
-			return (1 << k) - 1;
+			return (1L << k) - 1;
 		}
 		
-		static boolean hasNext(int S, int N)
+		static boolean hasNext(long S, int N)
 		{
-			return S < 1 << N;
+			return S < (1L << N);
 		}
 	}
 	

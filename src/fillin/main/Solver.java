@@ -102,6 +102,7 @@ public class Solver {
 		}
 		
 		int fill = Preprocessing.fillSafeFillEdge( g, N, sep );
+		Preprocessing.getSafeFillEdges().forEach(e -> this.fillEdges.add( e ));
 		safe += fill;
 		ArrayList< XBitSet > components = g.decomposeByCliqueSeparators();
 		
@@ -163,17 +164,11 @@ public class Solver {
 	}	
 	
 	public static void main(String[] args) throws FileNotFoundException {
-		for (int i = 1; i <= 100; i++) {
-			Solver solver = new Solver();
-			long start = System.currentTimeMillis();
-			String name =  i + ".graph";
-			int sol = solver.solve( Instance.read( "instances/" + name ) );
-	//		int sol = solver.solve( Instance.read( ) );
-			long end = System.currentTimeMillis();
-			System.out.println("#name = " + name  + ", sol = " +  sol + ", time = " + (end - start) + " msec, " + "safe = " + solver.safe);
-	//		for (Pair<String, String> e: solver.fillEdges) {
-	//			System.out.println(e.first + " " + e.second);
-	//		}
+		Solver solver = new Solver();
+		solver.solve( Instance.read() );
+		solver.fillEdges.forEach(e -> System.out.println(e.first + " " + e.second));
+		for (Pair<String, String> e: solver.fillEdges) {
+			System.out.println(e.first + " " + e.second);
 		}
 	}
 }
