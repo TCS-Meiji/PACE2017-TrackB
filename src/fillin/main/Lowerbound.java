@@ -283,7 +283,7 @@ public class Lowerbound {
 				lowerbound += Math.max( max , sum / 2);
 			} else {
 				if (DEBUG) {
-					System.out.println( "ERROR: there is at least one subpath of length at least one." );
+					throw new RuntimeException( "ERROR: there is at least one subpath of length at least one." );
 				}
 			}			
 		} 
@@ -313,8 +313,9 @@ public class Lowerbound {
 				int[] path = findPath( from, to, avoid );
 				if (path.length > 0) {
 					int[] cycle = Arrays.copyOf( path, path.length + 2);
-					cycle[ path.length ] = x;
-					cycle[ path.length + 1 ] = y;
+					cycle[ path.length ] = y;
+					cycle[ path.length + 1 ] = x;
+					
 					return cycle;
 				}
 			}
