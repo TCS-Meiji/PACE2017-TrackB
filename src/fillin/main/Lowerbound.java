@@ -9,8 +9,8 @@ import tw.common.XBitSet;
 
 public class Lowerbound {
 
-//	private static final boolean DEBUG = true;
-	private static final boolean DEBUG = false;
+	private static final boolean DEBUG = true;
+//	private static final boolean DEBUG = false;
 	
 	LabeledGraph g;
 	XBitSet whole;
@@ -35,15 +35,16 @@ public class Lowerbound {
 		lowerbound = 0;
 		whole = S;
 		XBitSet SS = procedure1( S );
-		XBitSet SSS = procedure2( SS );
+		procedure2( SS );
 		return lowerbound;
 	}
 	
 	public int get(XBitSet component, XBitSet separator)
 	{
 		LinkedList<Pair<Integer, Integer>> fill = new LinkedList<>();
+		
 		for (int u = separator.nextSetBit( 0 ); u >= 0; u = separator.nextSetBit( u + 1 )) {
-			for (int v = separator.nextSetBit( u + 1 ); v >= 0; v = separator.nextSetBit( v + 1)) {
+			for (int v = separator.nextSetBit( u + 1 ); v >= 0; v = separator.nextSetBit( v + 1 )) {
 				if (g.areAdjacent(u, v) == false) {
 					g.addEdge(u, v);
 					fill.add(new Pair<>(u, v));
@@ -52,6 +53,7 @@ public class Lowerbound {
 		}
 		int res = get(component.unionWith( separator ));
 		fill.forEach(e -> g.removeEdge( e.first, e.second ));
+		
 		return res;
 	}
 	
@@ -60,21 +62,15 @@ public class Lowerbound {
 		XBitSet res = (XBitSet)B.clone();
 		while (true) {
 			int[] cycle = findChordlessCycle( res );
-			
 			if (cycle.length == 0) {
 				break;
 			}
-			
-			for (int v: cycle) {
-				res.clear( v );
-			}
-			
-			lowerbound += cycle.length - 3;
-			
 			if (DEBUG) {
 				System.out.println( "detect a chordless cycles of type 1: " 
-									+ Arrays.toString( cycle ) );
+						+ Arrays.toString( cycle ) );
 			}
+			Arrays.stream( cycle ).forEach(v -> res.clear( v ));
+			lowerbound += cycle.length - 3;
 		}
 		
 		return res;
@@ -84,10 +80,10 @@ public class Lowerbound {
 	private static final int AVOID = -2;
 	private int[] findChordlessCycle(XBitSet B)
 	{
-		if (B.cardinality() < 4) {
+		int N = B.cardinality();
+		if (N < 4) {
 			return new int[ 0 ];
 		}
-		int N = B.cardinality();
 		int[] weight = new int[ g.n ];
 		boolean[] used = new boolean[ g.n ];
 		int[] order = new int[ N ];
@@ -148,7 +144,7 @@ public class Lowerbound {
 				}
 			}
 		}
-		
+
 		if (isChordal) {
 			return new int[ 0 ];
 		}
@@ -233,42 +229,6 @@ public class Lowerbound {
 		return new int[ 0 ];
 	}
 	
-	class IntQueue {
-		private final int[] queue;
-		private int head, tail;
-		
-		public IntQueue(int size) {
-			head = tail = 0;
-			queue = new int[ size ];
-		}
-		
-		public final int poll()
-		{
-			if (head == tail) {
-				return 0;
-			}
-			int v = queue[ head++ ];
-			if (head == queue.length) {
-				head = 0;
-			}
-			return v;
-		}
-		
-		public final void offer(int e)
-		{
-			queue[ tail++ ] = e;
-			if (tail == queue.length) {
-				tail = 0;
-			}
-		}
-		
-		public final boolean isEmpty()
-		{
-			return head == tail;
-		}
-	}
-
-	
 	private XBitSet procedure2(XBitSet B)
 	{
 		XBitSet res = (XBitSet)B.clone();
@@ -298,11 +258,8 @@ public class Lowerbound {
 				if (res.get( cycle[ ( i + start ) % cycle.length ] )) {
 					path.set( cycle[ ( i + start ) % cycle.length ] );
 				} else {
-					if (path.size() > 1) {
+					if (path.cardinality() > 1) {
 						path_len[ n_path++ ] = path.cardinality() - 1;
-						if (DEBUG) {
-							System.out.println();
-						}
 						res.andNot( path );
 					}
 					path.clear();
@@ -406,18 +363,48 @@ public class Lowerbound {
 		}
 		return new int[ 0 ];
 	}
+	
+	class IntQueue {
+		private final int[] queue;
+		private int head, tail;
+		
+		IntQueue(int size) {
+			head = tail = 0;
+			queue = new int[ size ];
+		}
+		
+		final int poll()
+		{
+			if (head == tail) {
+				return 0;
+			}
+			int v = queue[ head++ ];
+			if (head == queue.length) {
+				head = 0;
+			}
+			return v;
+		}
+		
+		final void offer(int e)
+		{
+			queue[ tail++ ] = e;
+			if (tail == queue.length) {
+				tail = 0;
+			}
+		}
+		
+		final boolean isEmpty()
+		{
+			return head == tail;
+		}
+	}
+
+	
+
 
 	public static void main(String[] args) {
 		LabeledGraph g = Instance.read();
 		Lowerbound lb = new Lowerbound( g );
-		XBitSet component = new XBitSet( g.n );
-		XBitSet separator = new XBitSet( g.n );
-		component.set( 0 );
-		component.set( 1 );
-		separator.set( 2 );
-		separator.set( 3 );
-		separator.set( 4 );
-		separator.set( 5 );
-		System.out.println(lb.get(component, separator));
+		System.out.println(lb.get());
 	}
 }

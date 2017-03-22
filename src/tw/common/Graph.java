@@ -149,7 +149,7 @@ public class Graph {
 			return;
 		}
 		degree[u]--;
-		System.arraycopy(neighbor, pos + 1, neighbor, pos, neighbor.length - pos - 1);
+		System.arraycopy(neighbor[u], pos + 1, neighbor[u], pos, neighbor[u].length - pos - 1);
 		neighbor[u] = Arrays.copyOf(neighbor[u], degree[u]);
 
 		neighborSet[u].clear(v);
