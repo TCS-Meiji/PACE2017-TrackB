@@ -18,85 +18,46 @@ public class Preprocessing {
 		return safeFill;
 	}
 	
-	public static int fillSafeFillEdge(LabeledGraph g, int SIZE, int K)
+	public static int fillSafeFillEdges(LabeledGraph g)
 	{
 		int cnt = 0;
+		
 		for (int u = 0; u < g.n; u++) {
-			if (g.degree[ u ] > SIZE) {
-				continue;
-			}
-			int D = g.degree[ u ];
-			for (int k = 2; k <= K; k++) {
-				for (long S = KSubSet.initKSubset( k ); KSubSet.hasNext( S ,D ); S = KSubSet.nextKSubset( S )) {
-					XBitSet sep = new XBitSet( g.n );
-					for (int i = 0; i < D; i++) {
-						if (((S >> i) & 1L) == 1L) {
-							sep.set( g.neighbor[ u ][ i ] );
-						}
-					}
-					if (g.countFill( sep ) != 1) {
-						continue;
-					}
-					if (isMinimalSeparator( g, sep )) {
-						L: for (int v = sep.nextSetBit( 0 ); v >= 0; v = sep.nextSetBit( v + 1 )) {
-							for (int w = sep.nextSetBit( v + 1 ); w >= 0; w = sep.nextSetBit( w + 1 )) {
-								if (g.areAdjacent( v, w ) == false) {
-									if (DEBUG) {
-										System.out.println("add" + "(" + g.getLabel( v ) + ", " + g.getLabel( w ) + "): " + sep.cardinality());
-									}
-									g.addEdge( v, w );
-									if (g.getLabel( v ).compareTo( g.getLabel( w ) ) < 0) {
-										safeFill.add( new Pair<>( g.getLabel( v ), g.getLabel( w ) ) );
-									} else {
-										safeFill.add( new Pair<>( g.getLabel( w ), g.getLabel( v ) ) );
-									}
-									cnt++;
-									break L;
-								}
+			// find a minimal separator S \subseteq N(u) with F(S) = 1
+			ArrayList< XBitSet > components = g.getComponents( g.neighborSet[ u ] );
+			for (XBitSet comp: components) {
+				if (comp.get( u )) {
+					continue;
+				}
+				XBitSet sep = g.neighborSet( comp );
+				if (g.countFill( sep ) != 1) {
+					continue;
+				}
+				// add the missing edge in sep
+				for (int v = sep.nextSetBit( 0 ); v >= 0; v = sep.nextSetBit( v + 1 )) {
+					for (int w = sep.nextSetBit( v + 1 ); w >= 0; w = sep.nextSetBit( w + 1 )) {
+						if (g.areAdjacent( v , w ) == false) {
+							g.addEdge(v, w);
+							String vl = g.getLabel( v );
+							String wl = g.getLabel( w );
+							if (vl.compareTo( wl ) < 0) { 
+								safeFill.add(new Pair< String, String >( vl, wl ));
+							} else {
+								safeFill.add(new Pair< String, String >( wl, vl ));
 							}
+							cnt++;
 						}
 					}
 				}
 			}
 		}
 		if (cnt > 0) {
-			return cnt + fillSafeFillEdge( g, SIZE, K );
+			return cnt + fillSafeFillEdges( g ); 
 		} else {
-			return cnt;
+			return 0;
 		}
 	}
 	
-	static class KSubSet
-	{	
-		private KSubSet(){ }
-		
-		static long nextKSubset(long S)
-		{
-			long x = S & -S;
-			long y = S + x;
-			return ((S & ~y) / x >> 1) | y;
-		}
-		
-		static long initKSubset(int k)
-		{
-			return (1L << k) - 1;
-		}
-		
-		static boolean hasNext(long S, int N)
-		{
-			return S < (1L << N);
-		}
-	}
-	
-	private static boolean isSeparator(LabeledGraph g, XBitSet sep)
-	{
-		if (g.getFullComponents(sep).size() >= 2) {
-			return true;
-		} else {
-			return false;
-		}
-	}
-
 	private static boolean isMinimalSeparator(LabeledGraph g, XBitSet sep)
 	{
 		if (g.getFullComponents( sep ).size() >= 2) {
@@ -106,12 +67,20 @@ public class Preprocessing {
 		}
 	}
 	
-	private static boolean isMinimalSeparator(LabeledGraph g, XBitSet sep, ArrayList<XBitSet> comps)
-	{
-		if (g.getFullComponents(sep, comps).size() >= 2) {
-			return true;
+	public static XBitSet reduceSimplicial(LabeledGraph g, XBitSet compo) {
+		XBitSet res = (XBitSet)compo.clone();
+		boolean hasSimplicial = false;
+		for (int u = compo.nextSetBit( 0 ); u >= 0; u = compo.nextSetBit( u + 1 )) {
+			if (g.isClique( compo.intersectWith( g.neighborSet[ u ] ) )) {
+				res.clear( u );
+				hasSimplicial = true;
+			}
+		}
+		if (hasSimplicial) {
+			return reduceSimplicial( g , res );
 		} else {
-			return false;
+			return res;
 		}
 	}
+
 }

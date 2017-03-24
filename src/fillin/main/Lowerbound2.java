@@ -9,7 +9,7 @@ import tw.common.LabeledGraph;
 import tw.common.Pair;
 import tw.common.XBitSet;
 
-public class Lowerbound {
+public class Lowerbound2 {
 
 //	private static final boolean DEBUG = true;
 	private static final boolean DEBUG = false;
@@ -19,7 +19,7 @@ public class Lowerbound {
 	int lowerbound;
 	ArrayList< XBitSet > cycles;
 	
-	public Lowerbound(Graph g)
+	public Lowerbound2(Graph g)
 	{
 		this.g = g;
 		cycles = new ArrayList<>();
@@ -33,14 +33,38 @@ public class Lowerbound {
 		}
 		return get( whole );
 	}
-	
+
 	public int get(XBitSet S)
 	{
 		lowerbound = 0;
 		whole = S;
-		XBitSet SS = procedure1( S );
-		procedure2( SS );
-		return lowerbound;
+		XBitSet rest = procedure1( S );
+		if (lowerbound == 0) {
+			procedure2( S );
+			return lowerbound;
+		}
+		int N = cycles.size() + rest.cardinality();
+		int[] idmap = new int[ g.n ];
+		int k = 0;
+		for(XBitSet C: cycles) {
+			for (int u = C.nextSetBit( 0 ); u >= 0; u = C.nextSetBit( u + 1 )) {
+				idmap[ u ] = k;
+			}
+			k++;
+		}
+		for (int u = rest.nextSetBit( 0 ); u >= 0; u = rest.nextSetBit( u + 1 )) {
+			idmap[ u ] = k++;
+		}
+		Graph contracted = new Graph( N );
+		for (int u = 0; u < g.n; u++) {
+			for (int v: g.neighbor[ u ]) {
+				if (u < v && idmap[ u ] != idmap[ v ]) {
+					contracted.addEdge( idmap[ u ] , idmap[ v ] );
+				}
+			}
+		}
+		Lowerbound sub = new Lowerbound( contracted );
+		return lowerbound + sub.get();
 	}
 	
 	public int get(XBitSet component, XBitSet separator)

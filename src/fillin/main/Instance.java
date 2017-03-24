@@ -2,6 +2,7 @@ package fillin.main;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Random;
@@ -26,26 +27,18 @@ public class Instance {
 			if (token.length != 2) {
 				throw new RuntimeException( "Input file is not correct." );
 			}
+			if (token[ 0 ].equals( token[ 1 ] )) {
+				continue; // self-loop
+			}
 			
 			labels.add( token[ 0 ] );
 			labels.add( token[ 1 ] );
 			lines.add( token );
 		}
 		
-		int N = 0;
-		String[] labelArray =  new String[ labels.size() ];
-		for (String s: labels) {
-			labelArray[ N++ ] = s;
-		}
-		
-		LabeledGraph g = new LabeledGraph( labelArray );
-		
-		for (String[] line: lines) {
-			g.addEdge( line[ 0 ] , line[ 1 ] );
-		}
-				
+		LabeledGraph g = new LabeledGraph( labels.toArray( new String[ labels.size() ] ) );
+		lines.forEach(line -> g.addEdgeBetween( line[ 0 ] , line[ 1 ]) );
 		return g;
-		
 	}
 	
 	public static LabeledGraph read(File file) 
@@ -53,7 +46,6 @@ public class Instance {
 		try {
 			return read( new Scanner( file ) );
 		} catch (FileNotFoundException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 			return read( );
 		}
@@ -88,17 +80,13 @@ public class Instance {
 			}
 		}
 		
-		System.out.println(data);
-		
+		System.out.println(data);		
 		return read( new Scanner( data ) );
 	}
 	
 	public static LabeledGraph randomGraph(int N, int prob)
 	{
-		Random rnd = new Random();
-		long seed = rnd.nextLong();
-//		System.out.println( seed );
-		return randomGraph(N, prob, seed);
+		return randomGraph(N, prob, new Random().nextLong());
 	}
 	
 }

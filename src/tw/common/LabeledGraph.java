@@ -27,7 +27,7 @@ public class LabeledGraph extends Graph {
 		return sum / 2;
 	}
 
-	public void addEdge(String u, String v)
+	public void addEdgeBetween(String u, String v)
 	{
 		int uid = Arrays.binarySearch( labels, u );
 		int vid = Arrays.binarySearch( labels, v );
@@ -88,41 +88,6 @@ public class LabeledGraph extends Graph {
 		}
 	}
 	
-	private int[] low2;
-	private int[] low3;
-	private int[] low3e;
-	private int[] parent;
-	public ArrayList< XBitSet > decomposeByBiCutPoints()
-	{
-		components = new ArrayList<>();
-		num = new int[ n ];
-		low2 = new int[ n ];
-		low3 = new int[ n ];
-		int m = edges();
-		int[] low3e = new int[ m ];
-		time = 0;
-		visitForBiCut(0, -1);
-		return components;
-	}
-	
-	private void visitForBiCut(int w, int v)
-	{
-		low2[ w ] = low3[ w ] = num[ w ] = ++time;
-		parent[ w ] = v;
-		for (int u: neighbor[ w ]) {
-			if (num[ u ] == 0) { // (w, u) is a tree edge
-				// e *= {e}
-			} else {
-				
-			}
-		}
-	}
-	
-	private class E {
-		int u, v;
-		int id;
-	}
-
 	/**
 	 * computes a clique separator decomposition of this graph.
 	 * This method returns an ArrayList whose elements of the form { XBitSet1, XBitSet2 }
@@ -356,6 +321,9 @@ public class LabeledGraph extends Graph {
 		int deg_sum = 0;
 		for (int u = S.nextSetBit( 0 ); u >= 0; u = S.nextSetBit( u + 1 )) {
 			deg_sum += S.intersectWith( neighborSet[ u ] ).cardinality();
+			if (neighborSet[u].get(u)) {
+				deg_sum--;
+			}
 		}
 		return (size * (size - 1) - deg_sum) / 2;
 	}
@@ -406,13 +374,14 @@ public class LabeledGraph extends Graph {
 		for (int v = 0; v < n; v++) {
 			for (int w = neighborSet[ v ].nextSetBit( v + 1 ); w >= 0; w = neighborSet[ v ].nextSetBit( w + 1 )) {
 				sb.append( getLabel( v ) ).append( " " ).append( getLabel( w ) ).append( "\n" );
+//				sb.append( v ).append( " " ).append( w ).append( "\n" );
 			}
 		}
 		return sb.toString();
 	}
 	
 	public static void main(String[] args) {
-		LabeledGraph g = Instance.read("instances/35.graph");
+		LabeledGraph g = Instance.read("instances/10.graph");
 		for (XBitSet comp: g.decomposeByCutPoints()) {
 			System.out.println( comp );
 		}

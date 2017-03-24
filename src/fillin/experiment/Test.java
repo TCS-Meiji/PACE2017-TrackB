@@ -1,27 +1,22 @@
 package fillin.experiment;
 
-import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.PrintStream;
 
 import java.util.Scanner;
 
-import fillin.branch.Branching;
 import fillin.branch.RandomGen;
 import fillin.branch.Vertex;
-import fillin.main.Decomposer;
 import fillin.main.Instance;
 import fillin.main.Lowerbound;
 import fillin.main.Solver;
 import tw.common.LabeledGraph;
-import tw.common.TreeDecomposition;
 
 public class Test {
 	public static void main(String[] args) throws FileNotFoundException {
 		int N = 100;
 		int nTest = 1000;
-		int density = 35;
-		int K = 30;
+		int density = 30;
+		int K = 20;
 		
 //		System.setOut( new PrintStream( new File( "out" ) ) );
 		// for each test, the instance is given as a random graph of N vertices such that
@@ -38,6 +33,7 @@ public class Test {
 				}
 			}
 			
+			System.out.println(data);
 			LabeledGraph lg = Instance.read( new Scanner( data ) );
 			Lowerbound lowerbound = new Lowerbound( lg );
 			Solver solver = new Solver();
@@ -46,7 +42,6 @@ public class Test {
 			System.out.println(lb + " " + dp);
 			if (lb > dp) {
 				// dp is provably incorrect
-				System.out.println(data);
 				System.out.println(lb + " vs " + dp);
 				return;
 			}
