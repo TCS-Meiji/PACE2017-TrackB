@@ -4,10 +4,10 @@ import java.io.FileNotFoundException;
 
 import java.util.Scanner;
 
+import fillin.branch.Branching;
 import fillin.branch.RandomGen;
 import fillin.branch.Vertex;
 import fillin.main.Instance;
-import fillin.main.Lowerbound;
 import fillin.main.Solver;
 import tw.common.LabeledGraph;
 
@@ -15,7 +15,7 @@ public class Test {
 	public static void main(String[] args) throws FileNotFoundException {
 		int N = 100;
 		int nTest = 1000;
-		int density = 30;
+		int density = 80;
 		int K = 20;
 		
 //		System.setOut( new PrintStream( new File( "out" ) ) );
@@ -32,17 +32,27 @@ public class Test {
 					}
 				}
 			}
+			Branching branch = new Branching( g );
+			int br = 0;
+			for (int k = 0; k <= 100; k++) {
+				if (branch.solve( k )) {
+					br = k;
+					break;
+				} else {
+					System.out.println("fail: " + k);
+				}
+			}
 			
-			System.out.println(data);
+//			System.out.println(data);
 			LabeledGraph lg = Instance.read( new Scanner( data ) );
-			Lowerbound lowerbound = new Lowerbound( lg );
 			Solver solver = new Solver();
-			int dp = solver.solve( lg );
-			int lb = lowerbound.get();
-			System.out.println(lb + " " + dp);
-			if (lb > dp) {
+			solver.solve( lg );
+			int dp = solver.getOpt();
+			
+			System.out.println(br + " " + dp);
+			if (br > dp) {
 				// dp is provably incorrect
-				System.out.println(lb + " vs " + dp);
+				System.out.println(br + " vs " + dp);
 				return;
 			}
 		}

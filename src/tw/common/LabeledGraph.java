@@ -43,14 +43,14 @@ public class LabeledGraph extends Graph {
 	private int[] low;
 	private int time;
 	private ArrayList< XBitSet > components;
-	private Stack< Integer > st;
+	private IntStack st;
 	
 	public ArrayList< XBitSet > decomposeByCutPoints()
 	{
 		components = new ArrayList< >();
 		num = new int[ n ];
 		low = new int[ n ];
-		st = new Stack<>();
+		st = new IntStack( n );
 		
 		for (int u = 0; u < n; u++) {
 			if (num[ u ] == 0) {
@@ -373,8 +373,8 @@ public class LabeledGraph extends Graph {
 		StringBuilder sb = new StringBuilder();
 		for (int v = 0; v < n; v++) {
 			for (int w = neighborSet[ v ].nextSetBit( v + 1 ); w >= 0; w = neighborSet[ v ].nextSetBit( w + 1 )) {
-				sb.append( getLabel( v ) ).append( " " ).append( getLabel( w ) ).append( "\n" );
-//				sb.append( v ).append( " " ).append( w ).append( "\n" );
+//				sb.append( getLabel( v ) ).append( " " ).append( getLabel( w ) ).append( "\n" );
+				sb.append( v ).append( " " ).append( w ).append( "\n" );
 			}
 		}
 		return sb.toString();

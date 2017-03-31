@@ -1,6 +1,6 @@
 package tw.common;
 
-public class Pair< F, S > {
+public class Pair<F, S> {
 	
 	public F first;
 	public S second;
@@ -13,7 +13,7 @@ public class Pair< F, S > {
 	@SuppressWarnings( "unchecked" )
 	@Override
 	public boolean equals(Object obj) {
-		return ((Pair< F, S >)obj).first.equals( first ) && ((Pair<F, S>)obj).second.equals( second );
+		return ((Pair<F, S>)obj).first.equals( first ) && ((Pair<F, S>)obj).second.equals( second );
 	}
 	
 	@Override

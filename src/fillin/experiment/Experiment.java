@@ -11,8 +11,8 @@ public class Experiment {
 			LabeledGraph g = Instance.read("instances/" + name);
 			if (g.n > 5000) continue;
 			Solver solver = new Solver();
-			System.out.println("==" + name + "==");
 			solver.solve( g );
+			System.out.println(name + "\t" + solver.getOpt());
 		}
 	}
 }

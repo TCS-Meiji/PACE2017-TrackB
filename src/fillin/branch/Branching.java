@@ -36,21 +36,21 @@ public class Branching {
 	{
 		forbid = new boolean[ N ][ N ];
 		if (branch( whole, k )) {
-			System.out.println( "==fill edges==" );
-			edges = new String[ k ][];
-			int kk = 0;
-			while (fillEdge.isEmpty() == false) {
-				Vertex[] edge = fillEdge.pop();
-				edges[ kk++ ] = new String[]{ edge[ 0 ].label, edge[ 1 ].label };
-				System.out.println( edge[ 0 ].label + " " + edge[ 1 ].label );
-				fill( edge[ 0 ], edge[ 1 ] );
-			}
-			
-			if (isChordal( whole )) {
-				System.out.println( "filled graph is chordal" );
-			} else {
-				System.out.println( "filled graph is not chordal");
-			}
+//			System.out.println( "==fill edges==" );
+//			edges = new String[ k ][];
+//			int kk = 0;
+//			while (fillEdge.isEmpty() == false) {
+//				Vertex[] edge = fillEdge.pop();
+//				edges[ kk++ ] = new String[]{ edge[ 0 ].label, edge[ 1 ].label };
+//				System.out.println( edge[ 0 ].label + " " + edge[ 1 ].label );
+//				fill( edge[ 0 ], edge[ 1 ] );
+//			}
+//			
+//			if (isChordal( whole )) {
+//				System.out.println( "filled graph is chordal" );
+//			} else {
+//				System.out.println( "filled graph is not chordal");
+//			}
 			
 			return true;
 		}

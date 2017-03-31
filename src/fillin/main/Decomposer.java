@@ -84,7 +84,6 @@ public class Decomposer {
 		// we need the lowerbound anyway, to be used in the relevant() method
 		// of TBlock
 		bounds = new Bounds(g);
-		long time = System.currentTimeMillis();
 		lowerbound = bounds.lowerbound();
 
 		if (VERBOSE) {
@@ -138,7 +137,9 @@ public class Decomposer {
 				// have been generated
 				// (3) all PMCs whose all inbound M-blocks as in (1)
 				// have been generated
-
+				if (VERBOSE) {
+					System.out.println("Trying " + targetCost + "/" + tentativeUB + " TBlocks = " + tBlockMap.size());
+				}
 				log("Current target cost: " + targetCost);
 
 				while (true) {
@@ -294,8 +295,7 @@ public class Decomposer {
 					// full block other than "component" found
 					if (v < minCompo) {
 						outbound = c.subtract(separator);
-					}
-					else {
+					} else {
 						// v > minCompo
 						outbound = component;
 					}
@@ -317,8 +317,7 @@ public class Decomposer {
 			StringBuilder sb = new StringBuilder();
 			if (outbound == component) {
 				sb.append("o");
-			} 
-			else {
+			} else {
 				if (mBlockMap.get(component) != null) {
 					sb.append("f");
 				} else {
@@ -579,8 +578,7 @@ public class Decomposer {
 			if (outbound == null) {
 				inbounds = blockList.toArray(
 						new Block[blockList.size()]);  
-			}
-			else {
+			} else {
 				inbounds = new Block[blockList.size()];
 				int k = 0;
 				for (Block block: blockList) {
@@ -776,9 +774,9 @@ public class Decomposer {
 	}
 
 	void log(String logHeader) {
-		if (VERBOSE) {
-			log(logHeader, System.out);
-		}
+//		if (VERBOSE) {
+//			log(logHeader, System.out);
+//		}
 		if (logFile != null) {
 			PrintStream ps;
 			try {
