@@ -1,64 +1,39 @@
 package fillin.main;
 
-import java.io.File;
-
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.Map;
+import java.util.PriorityQueue;
 import java.util.Queue;
-import java.util.Set;
-import java.util.TreeSet;
 
 import tw.common.BlockSieve;
-import tw.common.Graph;
 import tw.common.LabeledGraph;
-import tw.common.Pair;
 import tw.common.TreeDecomposition;
 import tw.common.XBitSet;
 
 public class Decomposer {
 
-//	static final boolean VERBOSE = true;
-	private static final boolean VERBOSE = false;
-	private static boolean DEBUG = false;
-	//	static boolean DEBUG = true;
+	private static final boolean VERBOSE = true;
+//	private static final boolean VERBOSE = false;
 
 	LabeledGraph g;
-	Bounds bounds;
 	int lowerbound;
 
 	BlockSieve tBlockSieve;
-
 	Queue< MBlock > readyQueue;
-
 	Map<XBitSet, MBlock> mBlockMap;
-
 	Map<XBitSet, TBlock> tBlockMap;
-
 	Map<XBitSet, Block> blockMap;
-
 	Map<XBitSet, PMC> pmcMap;
-
-	TreeSet<PMC> pmcQueue;
-
-	int targetCost;
-
+//	Map<XBitSet, Boolean> pmcCache;
+	PriorityQueue<PMC> pmcQueue;
+	
 	PMC solution;
-
-	int[][] forbiddenEdges;
-
-	File logFile;
-
+	int targetCost;
 	int tentativeUB;
-
 	boolean noUpperbound;
 
 	public void setNoUpperbound(boolean noUpperbound) {
@@ -83,12 +58,10 @@ public class Decomposer {
 
 		// we need the lowerbound anyway, to be used in the relevant() method
 		// of TBlock
-		bounds = new Bounds(g);
+		Bounds bounds = new Bounds(g);
 		lowerbound = bounds.lowerbound();
-
 		if (VERBOSE) {
-			System.out.println("n = " + g.n + 
-					", lb = " + lowerbound + ", ub = " + upperbound);
+			System.out.println("n = " + g.n +  ", lb = " + lowerbound + ", ub = " + upperbound);
 		}
 
 		int increment = 1;
@@ -101,23 +74,22 @@ public class Decomposer {
 		}
 
 		blockMap = new HashMap<>();
+//		pmcCache = new HashMap<>();
 
-		for (tentativeUB = start; tentativeUB <= end;
-				tentativeUB += increment){
+		for (tentativeUB = start; tentativeUB <= end; tentativeUB += increment){
 
 			mBlockMap = new HashMap<>();
 			pmcMap = new HashMap<>();
-			pmcQueue = new TreeSet<>();
-
+//			pmcQueue = new TreeSet<>();
+			pmcQueue = new PriorityQueue<>((a, b) -> a.lowerBound - b.lowerBound);
 			tBlockMap = new HashMap<>();
 			tBlockSieve = new BlockSieve(g.n);
-
 			readyQueue = new LinkedList<>();
+			
 			for (int v = 0; v < g.n; v++) {
 				XBitSet cnb = g.closedNeighborSet( v );
 
-				if (isPMC(cnb) == false || 
-						pmcMap.get(cnb) != null) {
+				if (pmcMap.get(cnb) != null || isPMC(cnb) == false) {
 					continue;
 				}
 
@@ -140,23 +112,16 @@ public class Decomposer {
 				if (VERBOSE) {
 					System.out.println("Trying " + targetCost + "/" + tentativeUB + " TBlocks = " + tBlockMap.size());
 				}
-				log("Current target cost: " + targetCost);
 
 				while (true) {
-					//	        log("outer while");
-					log("processing pmc queue");
-					if (DEBUG) {
-						for (PMC pmc: pmcQueue) {
-							System.out.print(pmc.lowerBound + " ");
-						}
-						System.out.println();
-					}
 					ArrayList<PMC> toConsider = new ArrayList<>();
 					while (!pmcQueue.isEmpty()) {
-						PMC pmc = pmcQueue.first();
+//						PMC pmc = pmcQueue.first();
+						PMC pmc = pmcQueue.peek();
 						if (pmc.lowerBound <= targetCost) {
 							toConsider.add(pmc);
-							pmcQueue.remove(pmc);
+//							pmcQueue.remove(pmc);
+							pmcQueue.poll();
 						} else {
 							break;
 						}
@@ -168,9 +133,7 @@ public class Decomposer {
 						break;
 					}
 					
-					log("processing ready queue");
 					while (readyQueue.isEmpty() == false) {
-						//	          log(" inner while");
 						MBlock ready = readyQueue.poll();
 						ready.process();
 					}
@@ -181,10 +144,6 @@ public class Decomposer {
 					return td;
 				}
 
-				if (DEBUG) {
-					System.out.println( "== MBlocks of cost at most " + targetCost );
-					mBlockMap.values().forEach(m -> System.out.println( m ));
-				}
 			}
 		}
 		return null;
@@ -197,6 +156,7 @@ public class Decomposer {
 			blockMap.put(component, block);
 		}
 		return block;
+//		return new Block(component);
 	}
 
 	TreeDecomposition constructTD() {
@@ -213,7 +173,7 @@ public class Decomposer {
 		}
 		return result;
 	}
-
+	
 	ArrayList<Block> getBlocks(XBitSet separator) {
 		//		int sepSize = separator.cardinality();
 		ArrayList<Block> result = new ArrayList<Block>();
@@ -239,13 +199,22 @@ public class Decomposer {
 		}
 		return result;
 	}
-
-	private boolean isPMC(XBitSet separator) {
+	
+	public boolean isPMC(XBitSet separator) {
+//		Boolean isPMC = pmcCache.get(separator);
+//		if (isPMC != null) {
+//			return isPMC;
+//		}
 		ArrayList<Block> blockList = getBlocks(separator);
-		for (int v = separator.nextSetBit(0); v >= 0; v = separator.nextSetBit(v + 1)) {
-			// rest is the subset of vertices of separator each of which
-			// is not adjacent to v and whose index is greater than that of v.
-			// For each w in rest, there is a separator S with {v, w} \subseteq S in blockList.
+		int nsep = separator.cardinality();
+		for (Block block: blockList) {
+			if (nsep == block.separator.cardinality()) {
+				// separator has a full component
+//				pmcCache.put(separator, false);
+				return false;
+			}
+		}
+		for (int v = separator.nextSetBit(0); v >= 0; v = separator.nextSetBit(v + 1)) {	
 			XBitSet rest = separator.subtract( g.neighborSet[v] ); 
 			for (int w = rest.nextSetBit(v + 1); w >= 0; w = rest.nextSetBit(w + 1)) {
 				boolean covered = false;
@@ -256,13 +225,15 @@ public class Decomposer {
 					}
 				}
 				if (!covered) {
+//					pmcCache.put(separator, false);
 					return false;
 				}
 			}
 		}
+//		pmcCache.put(separator, true);
 		return true;
 	}
-
+	
 	class Block implements Comparable<Block> {
 		XBitSet component;
 		XBitSet separator;
@@ -285,11 +256,11 @@ public class Decomposer {
 				c.set(v);
 				while (!toBeScanned.isEmpty()) {
 					XBitSet save = (XBitSet) c.clone();
-					for (int w = toBeScanned.nextSetBit(0); w >= 0; 
-							w = toBeScanned.nextSetBit(w + 1)) {
+					for (int w = toBeScanned.nextSetBit(0); w >= 0; w = toBeScanned.nextSetBit(w + 1)) {
 						c.or(g.neighborSet[w]);
 					}
-					toBeScanned = c.subtract(save).subtract(separator);
+					toBeScanned = c.subtract(save);
+					toBeScanned.andNot(separator);
 				}
 				if (separator.isSubset(c)) {
 					// full block other than "component" found
@@ -313,69 +284,35 @@ public class Decomposer {
 			return outbound != null;
 		}
 
-		public String toString() {
-			StringBuilder sb = new StringBuilder();
-			if (outbound == component) {
-				sb.append("o");
-			} else {
-				if (mBlockMap.get(component) != null) {
-					sb.append("f");
-				} else {
-					sb.append("i");
-				}
-			}
-			sb.append(component + "(" + separator + ")");
-			return sb.toString();
-		}
-
 		@Override
 		public int compareTo(Block b) {
 			return component.nextSetBit(0) - b.component.nextSetBit(0);
 		}
+
 	}
 
 	class MBlock {
 		XBitSet inbound;
 		XBitSet separator;
 		XBitSet outbound;
-		PMC endorser;
+		PMC pmc;
 		int cost;
 
-		MBlock(XBitSet inbound, XBitSet separator, XBitSet outbound, PMC endorser, int cost)
+		MBlock(XBitSet inbound, XBitSet separator, XBitSet outbound, PMC pmc, int cost)
 		{
-			if (inbound.equals(outbound)) {
-				throw new RuntimeException(inbound + " equals " + outbound);
-			}
 			this.inbound = inbound;
 			this.separator = separator;
 			this.outbound = outbound;
-			this.endorser = endorser;
+			this.pmc = pmc;
 			this.cost = cost;
-
-			if (DEBUG) {
-				System.out.println("MBlock constructor" + this);
-			}
 		}
 
 		void process() {
-			if (DEBUG) {
-				System.out.print("processing " + this);
-			}
-
 			makeSimpleTBlock();
-
 			tBlockSieve.collectSuperblocks(inbound, separator, new ArrayList<>()).forEach(tBlock -> tBlock.plugin( this ));
-
-			//			LinkedList< TBlock > tBlocks = new LinkedList<>();
-			//			tBlockTrie.collectSuperSet( inbound , tBlocks );
-			//			tBlocks.forEach(tBlock -> tBlock.plugin(this));
 		}
 
 		void makeSimpleTBlock() {
-
-			if (DEBUG) {
-				System.out.print("makeSimple: " + this);
-			}
 
 			TBlock tBlock = tBlockMap.get(separator); 
 			if (tBlock == null) {
@@ -384,23 +321,8 @@ public class Decomposer {
 				if (tBlock.relevant()) {
 					tBlockSieve.put(outbound, tBlock);
 					tBlock.crown();
-				} else {
-					if (DEBUG) {
-						System.out.println("discarding " + tBlock + 
-								", fill count = " + g.countFill(tBlock.separator) + 
-								", tentativeUB = " + tentativeUB);
-					}
 				}
 			}
-		}
-
-		public String toString() {
-			StringBuilder sb = new StringBuilder();
-			sb.append("MBlock:" + separator + "\n");
-			sb.append("  cost:" + cost + "\n");
-			sb.append("  in  :" + inbound + "\n");
-			sb.append("  out :" + outbound + "\n");
-			return sb.toString();
 		}
 	}
 
@@ -440,20 +362,11 @@ public class Decomposer {
 			if (cost + lowerbound <= tentativeUB) {
 				return true;
 			}
-
-			int lbRest = bounds.lowerbound(openComponent, separator);
-			//      System.out.println("cost = " + cost + ", lb = " + lbRest +
-			//          ", " + openComponent + ", " + separator);
-			return cost + lbRest <= tentativeUB;
+			return cost <= tentativeUB;
 
 		}
 
 		void plugin(MBlock mBlock) {
-
-			if (DEBUG) {
-				System.out.println("plugin " + mBlock);
-				System.out.println("  to " + this);
-			}
 
 			XBitSet newsep = separator.unionWith(mBlock.separator);
 
@@ -461,7 +374,8 @@ public class Decomposer {
 				return;
 			}
 
-			XBitSet extendedSep = g.all.subtract(openComponent).unionWith(mBlock.separator);
+			XBitSet extendedSep = g.all.subtract(openComponent);
+			extendedSep.or(mBlock.separator);
 
 			ArrayList<Block> blockList = getBlocks(extendedSep);
 
@@ -481,10 +395,6 @@ public class Decomposer {
 			}
 
 			if (fullBlock != null) {
-				//      if (g.isVital( newsep, targetCost ) == false) {
-				//        return;
-				//      }
-
 				TBlock tBlock = tBlockMap.get(newsep); 
 				if (tBlock == null) {
 					tBlock = new TBlock(newsep, fullBlock.component);
@@ -500,24 +410,15 @@ public class Decomposer {
 				}
 
 				PMC pmc = new PMC(newsep);
-
 				pmcMap.put(newsep, pmc);
-
 				pmc.process();
 			}
 		}
 
 		void crown() {
-			for (int v = separator.nextSetBit(0); v >= 0;
-					v = separator.nextSetBit(v + 1)) {
-				if (DEBUG) {
-					System.out.println("try crowing by " + v);
-				}
-
+			for (int v = separator.nextSetBit(0); v >= 0; v = separator.nextSetBit(v + 1)) {
 				XBitSet addition = g.neighborSet[v].intersectWith(openComponent);
-
 				XBitSet rest = openComponent.subtract(addition);
-
 				if (rest.isEmpty()) {
 					// rest is empty: should be dealt with the base case
 					continue;
@@ -527,30 +428,13 @@ public class Decomposer {
 
 				if (g.countFill(newsep) > tentativeUB) {
 					continue;
-				}
-
-				if (DEBUG) {
-					System.out.println("crowing by " + v + ":" + this);
-				}
-
+				}			
 				if (isPMC( newsep ) == false) {
 					continue;
 				}
-
 				PMC pmc = new PMC(newsep);
 				pmc.process();
 			} 
-		}
-
-		public String toString() {
-			StringBuilder sb = new StringBuilder();
-			sb.append("TBlock:\n");
-			for (Block b: blocks) {
-				sb.append(b + "\n");
-			}
-			sb.append("  sep :" + separator + "\n");
-			sb.append("  open:" + openComponent + "\n");
-			return sb.toString();
 		}
 	}
 
@@ -569,15 +453,12 @@ public class Decomposer {
 			ArrayList<Block> blockList = getBlocks(separator);
 
 			for (Block block: blockList) {
-				if (block.isOutbound() &&
-						(outbound == null || 
-						outbound.separator.isSubset(block.separator))){
+				if (block.isOutbound() && (outbound == null || outbound.separator.isSubset(block.separator))){
 					outbound = block;
 				}
 			}
 			if (outbound == null) {
-				inbounds = blockList.toArray(
-						new Block[blockList.size()]);  
+				inbounds = blockList.toArray(new Block[blockList.size()]);  
 			} else {
 				inbounds = new Block[blockList.size()];
 				int k = 0;
@@ -593,99 +474,52 @@ public class Decomposer {
 		}
 
 		void evaluate() {
-			//	    System.out.println("evaluating endorser: " + separator);
 			if (!ready) {
 				lowerBound = g.countFill(separator);
-				if (outbound != null) 
+				if (outbound != null) { 
 					lowerBound -= g.countFill(outbound.separator);
-
+				}
 				ready = true;
 				for (Block block: inbounds) {
 					MBlock mBlock = mBlockMap.get(block.component);
 					if (mBlock == null || mBlock.cost > targetCost) {
-						//	          System.out.println("inbound MBlock: " + mBlock);
 						ready = false;
 						lowerBound += targetCost;
-					}
-					else {
+					} else {
 						lowerBound += mBlock.cost;
 					}
 				}
-			}
-			if (DEBUG) {
-				System.out.println("pmc evaluated " + this);
 			}
 		}
 
 		void process() {
 			evaluate();
-
-			if (DEBUG) {
-				System.out.print("processing " + this);
-			}
 			if (ready && lowerBound <= targetCost) {
-				if (DEBUG) {
-					System.out.print("endorsing " + this);
-				}
 				endorse();
 			} else {
-				if (DEBUG) {
-					System.out.println("back to pmc queue: " + this);
-				}
 				pmcQueue.add(this);
 			}
 		}
 
 		void endorse() {
-			if (DEBUG) {
-				System.out.print("endorsing " + this);
-			}
-
-			if (DEBUG) {
-				System.out.println("ontbound= " + outbound);
-			}
-
 			int cost = countFill();
-
-			assert cost == lowerBound: "cost " + cost + 
-					" must be equal to the lower bound " + lowerBound +  
-					" when endorsing: " + this;
-
 			if (cost < targetCost) {
-				// this pmc must have been generated in some other way and
-				// have been processed
+				// this pmc must have been generated in some other way and have been processed
 				return;
 			}
 			if (outbound == null) {
 				solution = this;
 				return;
 			} else {
-				XBitSet target = getTarget();
-				endorse( target, cost );
+				endorse( getTarget(), cost );
 			}
 		}
 
 		void endorse(XBitSet target, int cost) {
-			if (DEBUG) {
-				System.out.println("endorsed = " + target);
-			}
-
 			MBlock mBlock = mBlockMap.get( target );
-			if (mBlock != null) {
-				assert mBlock.cost <= cost: "the cost " + mBlock.cost + 
-						" of the mBlock fist set must be optimal but the cost " + 
-						cost + " now found is smaller: " + this;
-				if (DEBUG) {
-					System.out.println(" already known optimal, cost = " +  
-							mBlock.cost);
-				}
-				return;
-			}
 			if (mBlock == null) {
 				mBlock = new MBlock( target, outbound.separator, outbound.component, this, cost);
 				mBlockMap.put(target, mBlock);
-				mBlock.cost = cost;
-				mBlock.endorser = this;
 				readyQueue.add( mBlock );
 			} 
 		}
@@ -695,14 +529,11 @@ public class Decomposer {
 				return null;
 			}
 			XBitSet combined = separator.subtract(outbound.separator);
-			for (Block b: inbounds) {
-				combined.or(b.component);
-			}
+			Arrays.stream(inbounds).forEach(b -> combined.or(b.component));
 			return combined;
 		}
 
-		int countFill()
-		{
+		int countFill() {
 			int fill = 0;
 			for (Block block: inbounds) {
 				MBlock mBlock = mBlockMap.get( block.component );
@@ -719,19 +550,11 @@ public class Decomposer {
 		}
 
 		int recurseTD(TreeDecomposition td) {
-			if (DEBUG) {
-				System.out.print("recurseTD:" + this);
-			}
 			int j = td.addBag(toBag(separator));
 
 			for (Block block: inbounds) {
-				if (DEBUG) {
-					System.out.println("compo = " + block.component);
-				}
-				PMC subEndorser = mBlockMap.get(block.component).endorser;
+				PMC subEndorser = mBlockMap.get(block.component).pmc;
 				if (subEndorser == null) {
-					System.out.println("subendorser is null, compo = " + 
-							block.component);
 					continue;
 				}
 				int k = subEndorser.recurseTD(td);
@@ -740,118 +563,13 @@ public class Decomposer {
 			return j;
 		}
 
-		public String toString() {
-			StringBuilder sb = new StringBuilder();
-			sb.append("Endorser:\n");
-			sb.append("  cost   = " + countFill() + "\n");
-			sb.append("  costLB = " + lowerBound + "\n");
-			sb.append("  ready  = " + ready + "\n");
-			sb.append("  outbound: " + outbound + "\n");
-			if (outbound != null) {
-				ArrayList<Block> blockList = getBlocks(separator);
-				for (Block b: blockList) {
-					if (b.separator.isSubset(outbound.separator)) {
-						sb.append("       " + b + "\n");
-					}
-				}
-			}
-
-			for (Block b: inbounds) {
-				sb.append("  " + b + "\n");
-			}
-			sb.append("  sep      :" + separator + "\n");
-			return sb.toString();
-		}
-
 		@Override
 		public int compareTo(PMC pmc) {
 			if (lowerBound != pmc.lowerBound) {
 				return lowerBound - pmc.lowerBound;  
 			}
-			return 
-					XBitSet.descendingComparator.compare(separator, pmc.separator);
+			return XBitSet.descendingComparator.compare(separator, pmc.separator);
 		}
-	}
-
-	void log(String logHeader) {
-//		if (VERBOSE) {
-//			log(logHeader, System.out);
-//		}
-		if (logFile != null) {
-			PrintStream ps;
-			try {
-				ps = new PrintStream(new FileOutputStream(logFile, true));
-
-				log(logHeader, ps);
-				ps.close();
-			} catch (FileNotFoundException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-		}
-	}
-
-	void log(String logHeader, PrintStream ps) {
-		ps.print(logHeader);
-
-		ps.println();
-
-		//		int sizes[] = tBlockSieve.getSizes();
-
-		ps.print("n = " + g.n) ;
-
-		ps.print(" cost = " + targetCost + 
-				"/" + tentativeUB + ", tBlocks = " + tBlockMap.size());
-		ps.print("(" + tBlockSieve.size() + ")");
-
-		ps.print(
-				", ready = " + 
-						readyQueue.size());
-		ps.print(
-				", endorsed = " + 
-						mBlockMap.size());
-		ps.print(
-				", pendings = " + 
-						pmcQueue.size());
-		ps.println(
-				", blocks = " + blockMap.size());
-	}
-
-	private static void test() {
-		String path = "instances/";
-		//		String path = "instances/test/";
-		//		String name = "error5.graph";
-		//		String name = "wa10.graph";
-		//		String name = "wa14.graph";
-		//				String name = "wa11.graph";
-		//				String name = "test5.graph";
-		//		String name = "2.graph";
-		//		String name = "3.graph";
-		//		String name = "4.graph";
-		//		String name = "5.graph";
-		String name = "13.graph";
-		LabeledGraph g = Instance.read(path + name);
-		//		LabeledGraph g = Instance.read();
-
-		//		System.out.println("Graph " + name + " read");
-		//		    for (int v = 0; v < g.n; v++) {
-		//		      System.out.println(v + ": " + g.degree[v] + ", " + g.neighborSet[v]);
-		//		    }
-
-		long t0 = System.currentTimeMillis();
-		Decomposer dec = new Decomposer(g);
-		TreeDecomposition td = dec.decompose(-1);
-
-		HashSet<Pair<String, String>> fillEdges = td.computeFill( g );
-		long t = System.currentTimeMillis();
-		System.out.println(name + " solved with cost " + dec.getOpt() + " with " + (t - t0) + " millisecs");
-		System.out.println("== optimal solution ==");
-		for (Pair<String, String>  edge: fillEdges) {
-			System.out.println(edge.first + " " + edge.second);
-		}
-		System.out.println("====");
-		System.out.println(fillEdges.size() + " edges, " +
-				"cost = " + dec.getOpt());
 	}
 
 	static class MinComparator implements Comparator<XBitSet> {
@@ -859,9 +577,6 @@ public class Decomposer {
 		public int compare(XBitSet o1, XBitSet o2) {
 			return o1.nextSetBit(0) - o2.nextSetBit(0);
 		}
-	}
-	public static void main(String args[]) {
-		test();
 	}
 }
 

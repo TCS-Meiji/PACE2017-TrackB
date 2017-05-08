@@ -542,7 +542,10 @@ public class TreeDecomposition {
 		if (bagSets == null) {
 			bagSets = new XBitSet[nb + 1];
 			for (int i = 1; i <= nb; i++) {
-				bagSets[i] = new XBitSet(bags[i]);
+				bagSets[i] = new XBitSet(g.n);
+				for (int k: bags[i]) {
+					bagSets[i].set(k);
+				}
 			}
 		}
 		for (int i = 1; i <= nb; i++) {
@@ -577,64 +580,6 @@ public class TreeDecomposition {
 			int j = neighbor[i][a];
 			if (j != exclude) {
 				collectVertices(j, i, set);
-			}
-		}
-	}
-
-	public void analyze(int rootIndex) {
-		if (bagSets == null) {
-			bagSets = new XBitSet[nb + 1];
-			for (int i = 1; i <= nb; i++) {
-				bagSets[i] = new XBitSet(bags[i]);
-			}
-		}
-
-		analyze(rootIndex, -1);
-	}
-
-	private void analyze(int i, int exclude) {
-		System.out.println(i + ": " + bagSets[i]);
-		XBitSet separator = bagSets[i];
-		XBitSet set[] = new XBitSet[degree[i]];
-
-		ArrayList<XBitSet> components = g.getComponents(separator);
-		for (int a = 0; a < degree[i]; a++) {
-			int j = neighbor[i][a];
-			set[a] = new XBitSet(g.n);
-			collectVertices(j, i, set[a]);
-		}
-		for (int a = 0; a < degree[i]; a++) {
-			int j = neighbor[i][a];
-			if (j != exclude) {
-				System.out.println("  subtree at " + j);
-				for (XBitSet compo: components) {
-					if (compo.isSubset(set[a])) {
-						System.out.println("    contains " + compo);
-					}
-					else if (compo.intersects(set[a])) {
-						System.out.println("    intersects " + compo);
-						System.out.println("    but missing " + 
-								compo.subtract(set[a]));
-					}
-				}
-			}
-		}
-		for (XBitSet compo: components) {
-			boolean intersecting = false;
-			for (int a = 0; a < degree[i]; a++) {
-				if (compo.intersects(set[a])) {
-					intersecting = true;
-				}
-			}
-			if (!intersecting) {
-				System.out.println("  component totally missing: " +
-						compo);
-			}
-		}
-		for (int a = 0; a < degree[i]; a++) {
-			int j = neighbor[i][a];
-			if (j != exclude) {
-				analyze(j, i);
 			}
 		}
 	}

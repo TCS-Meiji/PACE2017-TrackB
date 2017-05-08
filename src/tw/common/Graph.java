@@ -3,17 +3,10 @@
  */
 package tw.common;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.FileReader;
-import java.io.IOException;
-import java.io.PrintStream;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
-import java.util.Random;
 
 /**
  * This class provides a representation of undirected simple graphs.
@@ -73,8 +66,6 @@ public class Graph {
 	private int dfCount;
 	private XBitSet articulationSet;
 
-	private static BufferedReader br;
-
 	/**
 	 * Construct a graph with the specified number of
 	 * vertices and no edges.  Edges will be added by
@@ -104,6 +95,9 @@ public class Graph {
 	 * @param v vertex (the other end of the edge)
 	 */
 	public void addEdge(int u, int v) {
+		if (u == v) {
+			return;
+		}
 		addToNeighbors(u, v);
 		addToNeighbors(v, u);
 	}
@@ -198,173 +192,6 @@ public class Graph {
 	}
 
 	/**
-	 * Read a graph from the specified file in {@code dgf} format and
-	 * return the resulting {@code Graph} object.
-	 * @param path the path of the directory containing the file
-	 * @param name the file name without the extension ".dgf"
-	 * @return the resulting {@code Graph} object; null if the reading fails
-	 */
-	public static Graph readGraphDgf(String path, String name) {
-		File file = new File(path + "/" + name + ".dgf");
-		return readGraphDgf(file);
-	}
-
-	/**
-	 * Read a graph from the specified file in {@code dgf} format and
-	 * return the resulting {@code Graph} object.
-	 * @param file file from which to read
-	 * @return the resulting {@code Graph} object; null if the reading fails
-	 */
-	public static Graph readGraphDgf(File file) {
-		try {
-			br = new BufferedReader(new FileReader(file));
-			String line = br.readLine();
-			while (line.startsWith("c")) {
-				line = br.readLine();
-			}
-			if (line.startsWith("p")) {
-				String s[] = line.split(" ");
-				int n = Integer.parseInt(s[2]);
-				// m is twice the number of edges explicitly listed
-				int m = Integer.parseInt(s[3]);
-				Graph g = new Graph(n);
-
-				for (int i = 0; i < m; i++) {
-					line = br.readLine();
-					while (!line.startsWith("e")) {
-						line = br.readLine();
-					}
-					s = line.split(" ");
-					int u = Integer.parseInt(s[1]) - 1;
-					int v = Integer.parseInt(s[2]) - 1;
-					g.addEdge(u, v);
-				}
-				return g;
-			}
-			else {
-				throw new RuntimeException("!!No problem descrioption");
-			}
-
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		return null;
-	}
-
-	/**
-	 * Read a graph from the specified file in {@code col} format and
-	 * return the resulting {@code Graph} object.
-	 * @param path the path of the directory containing the file
-	 * @param name the file name without the extension ".col"
-	 * @return the resulting {@code Graph} object; null if the reading fails
-	 */
-	public static Graph readGraphCol(String path, String name) {
-		File file = new File(path + "/" + name + ".col");
-		try {
-			br = new BufferedReader(new FileReader(file));
-			String line = br.readLine();
-			while (line.startsWith("c")) {
-				line = br.readLine();
-			}
-			if (line.startsWith("p")) {
-				String s[] = line.split(" ");
-				int n = Integer.parseInt(s[2]);
-				// m is twice the number of edges in this format
-				int m = Integer.parseInt(s[3]);
-				Graph g = new Graph(n);
-
-				for (int i = 0; i < m; i++) {
-					line = br.readLine();
-					while (line != null && !line.startsWith("e")) {
-						line = br.readLine();
-					}
-					if (line == null) {
-						break;
-					}
-					s = line.split(" ");
-					int u = Integer.parseInt(s[1]);
-					int v = Integer.parseInt(s[2]);
-					g.addEdge(u - 1, v - 1);
-				}
-				return g;
-			}
-			else {
-				throw new RuntimeException("!!No problem descrioption");
-			}
-
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		return null;
-	}
-
-	/**
-	 * Read a graph from the specified file in {@code gr} format and
-	 * return the resulting {@code Graph} object.
-	 * The vertex numbers 1~n in the gr file format are
-	 * converted to 0~n-1 in the internal representation.
-	 * @param file graph file in {@code gr} format
-	 * @return the resulting {@code Graph} object; null if the reading fails
-	 */
-	public static Graph readGraph(String path, String name) {
-		File file = new File(path + "/" + name + ".gr");
-		return readGraph(file);
-	}
-
-	/**
-	 * Read a graph from the specified file in {@code gr} format and
-	 * return the resulting {@code Graph} object.
-	 * The vertex numbers 1~n in the gr file format are
-	 * converted to 0~n-1 in the internal representation.
-	 * @param path the path of the directory containing the file
-	 * @param name the file name without the extension ".gr"
-	 * @return the resulting {@code Graph} object; null if the reading fails
-	 */
-	public static Graph readGraph(File file) {
-		try {
-			br = new BufferedReader(new FileReader(file));
-			String line = br.readLine();
-			while (line.startsWith("c")) {
-				line = br.readLine();
-			}
-			if (line.startsWith("p")) {
-				String s[] = line.split(" ");
-				if (!s[1].equals("tw")) {
-					throw new RuntimeException("!!Not treewidth instance");
-				}
-				int n = Integer.parseInt(s[2]);
-				int m = Integer.parseInt(s[3]);
-				Graph g = new Graph(n);
-
-				for (int i = 0; i < m; i++) {
-					line = br.readLine();
-					while (line.startsWith("c")) {
-						line = br.readLine();
-					}
-					s = line.split(" ");
-					int u = Integer.parseInt(s[0]);
-					int v = Integer.parseInt(s[1]);
-					g.addEdge(u - 1, v - 1);
-				}
-				return g;
-			}
-			else {
-				throw new RuntimeException("!!No problem descrioption");
-			}
-
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		return null;
-	}
-
-	/**
 	 * finds the first occurence of the
 	 * given integer in the given int array
 	 * @param x value to be searched
@@ -422,8 +249,7 @@ public class Graph {
 	 */
 	public XBitSet neighborSet(XBitSet set) {
 		XBitSet result = new XBitSet(n);
-		for (int v = set.nextSetBit(0); v >= 0;
-				v = set.nextSetBit(v + 1)) {
+		for (int v = set.nextSetBit(0); v >= 0; v = set.nextSetBit(v + 1)) {
 			result.or(neighborSet[v]);
 		}
 		result.andNot(set);
@@ -438,15 +264,14 @@ public class Graph {
 	 */
 	public XBitSet closedNeighborSet(XBitSet set) {
 		XBitSet result = (XBitSet) set.clone();
-		for (int v = set.nextSetBit(0); v >= 0;
-				v = set.nextSetBit(v + 1)) {
+		for (int v = set.nextSetBit(0); v >= 0; v = set.nextSetBit(v + 1)) {
 			result.or(neighborSet[v]);
 		}
 		return result;
 	}
 	
 	public XBitSet closedNeighborSet(int x) {
-		XBitSet result = (XBitSet)neighborSet[ x ];
+		XBitSet result = (XBitSet) neighborSet[ x ].clone();
 		result.set( x );
 		return result;
 	}
@@ -519,15 +344,13 @@ public class Graph {
 	public ArrayList<XBitSet> getComponents(XBitSet separator) {
 		ArrayList<XBitSet> result = new ArrayList<XBitSet>();
 		XBitSet rest = all.subtract(separator);
-		for (int v = rest.nextSetBit(0); v >= 0;
-				v = rest.nextSetBit(v + 1)) {
+		for (int v = rest.nextSetBit(0); v >= 0; v = rest.nextSetBit(v + 1)) {
 			XBitSet c = (XBitSet) neighborSet[v].clone();
 			XBitSet toBeScanned = c.subtract(separator);
 			c.set(v);
 			while (!toBeScanned.isEmpty()) {
 				XBitSet save = (XBitSet) c.clone();
-				for (int w = toBeScanned.nextSetBit(0); w >= 0;
-						w = toBeScanned.nextSetBit(w + 1)) {
+				for (int w = toBeScanned.nextSetBit(0); w >= 0; w = toBeScanned.nextSetBit(w + 1)) {
 					c.or(neighborSet[w]);
 				}
 				toBeScanned = c.subtract(save);
@@ -535,48 +358,6 @@ public class Graph {
 			}
 			result.add(c.subtract(separator));
 			rest.andNot(c);
-		}
-		return result;
-	}
-
-	/**
-	 * Compute the full components associated with the given separator,
-	 * by means of iterated bit operations
-	 * @param separator set of vertices to be removed
-	 * @return the arrayList of full components,
-	 * the vertex set of each component represented by a {@code XBitSet}
-	 */
-	public ArrayList<XBitSet> getFullComponents(XBitSet separator) {
-		ArrayList<XBitSet> result = new ArrayList<XBitSet>();
-		XBitSet rest = all.subtract(separator);
-		for (int v = rest.nextSetBit(0); v >= 0;
-				v = rest.nextSetBit(v + 1)) {
-			XBitSet c = (XBitSet) neighborSet[v].clone();
-			XBitSet toBeScanned = c.subtract(separator);
-			c.set(v);
-			while (!toBeScanned.isEmpty()) {
-				XBitSet save = (XBitSet) c.clone();
-				for (int w = toBeScanned.nextSetBit(0); w >= 0;
-						w = toBeScanned.nextSetBit(w + 1)) {
-					c.or(neighborSet[w]);
-				}
-				toBeScanned = c.subtract(save);
-				toBeScanned.andNot(separator);
-			}
-			if (separator.isSubset( c )) {
-				result.add( c );
-			}
-			rest.andNot(c);
-		}
-		return result;
-	}
-	
-	public ArrayList<XBitSet> getFullComponents(XBitSet separator, ArrayList<XBitSet> components) {
-		ArrayList<XBitSet> result = new ArrayList<XBitSet>();
-		for (XBitSet comp: components) {
-			if (separator.equals(neighborSet(comp))) {
-				result.add( comp );
-			}
 		}
 		return result;
 	}
@@ -779,92 +560,5 @@ public class Graph {
 			}
 		}
 		return true;
-	}
-
-	/**
-	 * Saves this target graph in the file specified by a path string,
-	 * in .gr format.
-	 * A stack trace will be printed if the file is not available for writing
-	 * @param path the path-string
-	 */
-	public void save(String path) {
-		File outFile = new File(path);
-		PrintStream ps;
-		try {
-			ps = new PrintStream(new FileOutputStream(outFile));
-			writeTo(ps);
-			ps.close();
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
-		}
-	}
-	/**
-	 * Write this target graph in .gr format to the given
-	 * print stream.
-	 * @param ps print stream
-	 */
-	public void writeTo(PrintStream ps) {
-		int m = 0;
-		for (int i = 0; i < n; i++) {
-			m += degree[i];
-		}
-		m = m / 2;
-		ps.println("p tw " + n + " " + m);
-		for (int i = 0; i < n; i++) {
-			for (int j = 0; j < degree[i]; j++) {
-				int k = neighbor[i][j];
-				if (i < k) {
-					ps.println((i + 1) + " " + (k + 1));
-				}
-			}
-		}
-	}
-
-	/**
-	 * Create a copy of this target graph
-	 * @return the copy of this graph
-	 */
-	public Graph copy() {
-		Graph tmp = new Graph(n);
-		for (int v = 0; v < n; v++) {
-			for (int j = 0; j < neighbor[v].length; j++) {
-				int w = neighbor[v][j];
-				tmp.addEdge(v, w);
-			}
-		}
-		return tmp;
-	}
-
-	/**
-	 * Create a random graph with the given number of vertices and
-	 * the given number of edges
-	 * @param n the number of vertices
-	 * @param m the number of edges
-	 * @param seed the seed for the pseudo random number generation
-	 * @return {@code Graph} instance constructed
-	 */
-	public static Graph randomGraph(int n, int m, int seed) {
-		Random random = new Random(seed);
-		Graph g = new Graph(n);
-
-		int k = 0;
-		int j = 0;
-		int m0 = n * (n - 1) / 2;
-		for (int v = 0; v < n; v++) {
-			for (int w = v + 1; w < n; w++) {
-				int r = random.nextInt(m0 - j);
-				if (r < m - k) {
-					g.addEdge(v, w);
-					g.addEdge(w, v);
-					k++;
-				}
-				j++;
-			}
-		}
-		return g;
-	}
-
-	public static void main(String args[]) {
-
 	}
 }

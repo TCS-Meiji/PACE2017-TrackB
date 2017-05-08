@@ -1,8 +1,6 @@
 package fillin.main;
 
-//import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -19,8 +17,11 @@ public class Solver {
 
 	HashSet< Pair<String, String> > fillEdges;
 	HashSet< Pair<String, String> > safeFill;
-	private static final int DIRECT_SOLVING_THRESHOLD = 30;
+	private static final int DIRECT_SOLVING_THRESHOLD = 32;
 	private static final int SIZE_DECREMENT = 8;
+	
+//	private static final boolean DEBUG = true;
+	private static final boolean DEBUG = false;
 	
 	public int getOpt() {
 		return fillEdges.size();
@@ -30,12 +31,13 @@ public class Solver {
 		fillEdges = new HashSet<>();
 		safeFill = new HashSet<>();
 	}
+
 	public void solve(LabeledGraph g)
 	{
 		if (g.n <= 3) {
 			return;
 		}
-		LabeledGraph[] graphs = toGraphs( g, g.getComponents( new XBitSet() ) );
+		LabeledGraph[] graphs = toGraphs( g, g.getComponents( new XBitSet( g.n ) ) );
 		Arrays.stream( graphs ).forEach(sg -> solveConnected( sg ));
 		fillEdges.addAll( safeFill );
 	}
@@ -52,11 +54,17 @@ public class Solver {
 	
 	public void solveBiconnected(LabeledGraph g)
 	{
-		if (g.n <= 3) {
-			return;
+		if (DEBUG) {
+			System.out.println("call safeSeparator for " + g.n);
 		}
-		
 		XBitSet separator = safeSeparator( g );
+		if (DEBUG) {
+			if (separator != null) {
+				System.out.println("detect a separator of size " + separator.cardinality());
+			} else {
+				System.out.println("there is no safe separator");
+			}
+		}
 		if (separator == null) {
 			solveComponent( g );
 		} else {
@@ -70,7 +78,6 @@ public class Solver {
 				}
 			}
 		}
-		
 	}
 	
 	public void solveComponent(LabeledGraph g)
@@ -78,7 +85,9 @@ public class Solver {
 		if (g.n <= 3) {
 			return;
 		}
-		
+		if (DEBUG) {
+			System.out.println("call clique separator decomposition for " + g.n);
+		}
 		ArrayList< XBitSet > components = g.decomposeByCliqueSeparators();
 		
 		if (components.size() == 1) {
@@ -96,11 +105,11 @@ public class Solver {
 		if (g.isChordal()) {
 			return;
 		}
-		
-//		int ub = getUpperbound( g );
-//		Decomposer dec = new Decomposer( g );
-//		TreeDecomposition td = dec.decompose( ub );
-//		fillEdges.addAll( td.computeFill( g ) );
+//		g = eliminate(g);
+		int ub = getUpperbound( g );
+		Decomposer dec = new Decomposer( g );
+		TreeDecomposition td = dec.decompose( ub );
+		fillEdges.addAll( td.computeFill( g ) );
 	}
 	
 	private int getUpperbound(LabeledGraph g) {
@@ -112,21 +121,30 @@ public class Solver {
 		LabeledGraph h = g;
 		while (h.n > g.n - SIZE_DECREMENT) {
 			XBitSet separator = bestSeparator(h);
-//			System.out.println("n = " + h.n + ", separator: " + separator);
 			if (separator == null) {
+				if (DEBUG) {
+					System.out.println("there is no separator" + h.n + " " + h.edges());
+				}
 				break;
 			}
 			int nfill = h.countFill(separator);
-//			System.out.println("n = " + h.n + ", separator: " + separator.cardinality() +
-//					", fill = " + nfill);
+			if (DEBUG) {
+				System.out.println("n = " + h.n + ", separator: " + separator + ", size = " + separator.cardinality() + ", fill = " + nfill);
+				for (int u = separator.nextSetBit(0); u >= 0; u = separator.nextSetBit(u + 1)) {
+					for (int v = separator.nextSetBit(u + 1); v >= 0; v = separator.nextSetBit(v + 1)) {
+						if (g.areAdjacent(u, v) == false) {
+							System.out.println(u + " " + v);
+						}
+					}
+				}
+			}
 			deltaUB += nfill;
 
 			ArrayList<XBitSet> components = h.getComponents(separator);
 
 			int nc = components.size();
 
-			Collections.sort(components, 
-					(a, b) -> a.cardinality() - b.cardinality());
+			Collections.sort(components, (a, b) -> a.cardinality() - b.cardinality());
 
 			for (int i = 0; i < nc; i++) {
 				XBitSet compo = components.get(i).unionWith(separator);
@@ -143,12 +161,12 @@ public class Solver {
 				LabeledGraph h1 = new LabeledGraph(labelArray);
 				for (int u = compo.nextSetBit(0); u >= 0; u = compo.nextSetBit(u + 1)) {
 					for (int v = compo.nextSetBit(u + 1); v >= 0; v = compo.nextSetBit(v + 1)) {
-						if (h.areAdjacent(u, v) ||
-								separator.get(u) && separator.get(v)) {
+						if (h.areAdjacent(u, v) || separator.get(u) && separator.get(v)) {
 							h1.addEdge(conv[u], conv[v]);
 						}
 					}
 				}
+				h1 = toGraph(h1, h1.all);
 				if (i < nc - 1) {
 					deltaUB += solveComponentDirect(h1);
 				} else {
@@ -161,7 +179,13 @@ public class Solver {
 		}
 		int ub = getUpperbound(h);
 		Decomposer dec = new Decomposer(h);
+		if (DEBUG) {
+			System.out.println("call decompose for " + h.n);
+		}
 		dec.decompose(ub);
+		if (DEBUG) {
+			System.out.println("return from " + h.n);
+		}
 		return deltaUB + dec.getOpt();
 	}
 	
@@ -169,7 +193,7 @@ public class Solver {
 		if (g.isChordal()) {
 			return 0;
 		}
-		
+
 		Decomposer dec = new Decomposer(g);
 		dec.decompose(-1);
 		return dec.getOpt();
@@ -177,6 +201,7 @@ public class Solver {
 	
 	XBitSet bestSeparator(LabeledGraph g) {
 		XBitSet best = null;
+		int bestNcomp = 0;
 		for (int v = 0; v < g.n; v++) {
 			ArrayList<XBitSet> components = g.getComponents(g.neighborSet[v]);
 			if (components.size() == 1) {
@@ -186,50 +211,32 @@ public class Solver {
 				XBitSet separator = g.neighborSet(compo);
 				if (best == null || g.countFill(separator) < g.countFill(best)) {
 					best = separator;
-				} else if (g.countFill(separator) == g.countFill(best) &&
-						smallestComponentSize(g, separator) > smallestComponentSize(g, best)) {
-					best = separator;
+					bestNcomp = g.getComponents( separator ).size();
+				} else if (g.countFill(separator) == g.countFill(best)) {
+					int ncomp = g.getComponents( separator ).size();
+					if (ncomp > bestNcomp) {
+						best = separator;
+						bestNcomp = ncomp;
+					} else if (ncomp == bestNcomp) {
+						if (smallestComponentSize(g, separator) > smallestComponentSize(g, best)) {
+							best = separator;
+							bestNcomp = ncomp;
+						}
+					}
 				}
 			}
 		}
 		return best;
-	}
-	
-	XBitSet balancedSeparator(LabeledGraph g)
-	{
-		XBitSet best = null;
-		int size = g.n + 1;
-		for (int v = 0; v < g.n; v++) {
-			ArrayList< XBitSet > components = g.getComponents( g.neighborSet[ v ] );
-			if (components.size() == 1) {
-				continue;
-			}
-			for (XBitSet compo: components) {
-				XBitSet separator = g.neighborSet( compo );
-				int tsize = largestComponentSize(g, separator);
-				if (tsize < size) {
-					best = separator;
-					size = tsize;
-				} else if (tsize == size && g.countFill(separator) < g.countFill(best)) {
-					best = separator;
-				}
-			}
-		}
-		return best;
-	}
-	private int largestComponentSize(LabeledGraph g, XBitSet separator)
-	{
-		ArrayList< XBitSet > components = g.getComponents( separator );
-		return components.stream().max(Comparator.comparing(comp -> comp.cardinality())).get().cardinality();
 	}
 	
 	private int smallestComponentSize(LabeledGraph g, XBitSet separator) {
 		ArrayList<XBitSet> components = g.getComponents(separator);
 		return components.stream().min(Comparator.comparing(comp -> comp.cardinality())).get().cardinality();
 	}
-	
+
 	private XBitSet safeSeparator(LabeledGraph g)
 	{
+		XBitSet safeSeparator = null;
 		for (int u = 0; u < g.n; u++) {
 			ArrayList< XBitSet > components = g.getComponents( g.neighborSet[ u ] );
 			for (XBitSet comp: components) {
@@ -240,15 +247,23 @@ public class Solver {
 				
 				int missing = g.countFill( separator );
 				if (missing == 0) {
-					return separator;
+					if (safeSeparator == null) {
+						safeSeparator = separator;
+					}
+				} else if (missing == 1) {
+					if (safeSeparator == null) {
+						safeSeparator = separator;
+					}
+					if (DEBUG) {
+						System.out.println("DETECT 1");
+					}
+					safeFill( g, separator );
 				}
-				if (missing != 1) {
-					continue;
-				}
-
-				safeFilling( g, separator );
-				return separator;
 			}
+		}
+		
+		if (safeSeparator != null) {
+			return safeSeparator;
 		}
 		
 		for (int u = 0; u < g.n; u++) {
@@ -257,52 +272,20 @@ public class Solver {
 				if (comp.get( u )) {
 					continue;
 				}
-				if (isSafe( g, comp, u ) == false) {
-					continue;
-				}
+				if (isSafe( g, comp, u )) {
+					XBitSet separator = g.neighborSet( comp );
+					if (DEBUG) {
+						System.out.println("DETECT " + g.countFill(separator));
+					}
+					safeFill( g, separator );
+					if (safeSeparator == null) {
+						safeSeparator = separator;
+					}
+				} 
 				
-				XBitSet separator = g.neighborSet( comp );
-				safeFilling( g, separator );
-				return separator;
 			}
 		}
-		
-//		for (int u = 0; u < g.n; u++) {
-//			ArrayList< XBitSet > components = g.getComponents( g.neighborSet[ u ] );
-//			L: for (XBitSet comp: components) {
-//				XBitSet separator = g.neighborSet( comp );
-//				if (separator.size() == 4) {
-//					if (g.countFill( separator ) != 2) {
-//						continue;
-//					}
-//					for (int v = separator.nextSetBit( 0 ); v >= 0; v = separator.nextSetBit( v + 1 )) {
-//						if (g.neighborSet[ v ].intersectWith( separator ).cardinality() != 2) {
-//							continue L;
-//						}
-//					}
-//					// separator induces an induced C_4
-//					for (int v = separator.nextSetBit( 0 ); v >= 0; v = separator.nextSetBit( v + 1 )) {
-//						for (int w = separator.nextSetBit( v + 1 ); w >= 0; w = separator.nextSetBit( w + 1 )) {
-//							if (g.areAdjacent( v, w )) {
-//								continue;
-//							}
-//							g.addEdge( v, w );
-//							if (isSafe(g, comp, u) == false) {
-//								g.removeEdge( v, w );
-//								continue L;
-//							}
-//							g.removeEdge( v, w );
-//						}
-//					}
-//					// every minimal fill-in of G[separator] is guard-safe
-//					System.out.println("detect");
-//					safeFilling( g, separator );
-//					return separator;
-//				}
-//			}
-//		}
-		
-		return null;
+		return safeSeparator;
 	}
 	
 	private boolean isSafe(LabeledGraph g, XBitSet A, int b)
@@ -313,7 +296,6 @@ public class Solver {
 		if (missing == 0) {
 			return true;
 		}
-		
 		int x = 0;
 		// separator must not be a clique
 		for (int u = separator.nextSetBit( 0 ); u >= 0; u = separator.nextSetBit( u + 1 )) {
@@ -329,72 +311,21 @@ public class Solver {
 		if (R.cardinality() == separator.cardinality()) {
 			return false;
 		}
+		for (XBitSet comp: g.getComponents(separator)) {
+			if (comp.get( b )) continue;
+			XBitSet subSep = g.neighborSet( comp );
+			if (subSep.isSubset( separator )) {
+				A.or( comp );
+			}
+		}
 		
 		// separator must be clique + x, where x is the unique element of separator \ R
 		R.andNot( g.neighborSet[ x ] );
-		V[] path = new V[ g.n ];
-		ArrayList< V > vs = new ArrayList<>();
-		for (int y = R.nextSetBit( 0 ); y >= 0; y = R.nextSetBit( y + 1 )) {
-			V v = new V();
-			vs.add( v );
-			XBitSet Nxy = g.neighborSet[ x ].intersectWith( g.neighborSet[ y ] );
-			Nxy.and( A );
-			for (int a = Nxy.nextSetBit( 0 ); a >= 0; a = Nxy.nextSetBit( a + 1 )) {
-				if (path[ a ] == null) {
-					path[ a ] = new V();
-				}
-				v.add( path[ a ] );
-				path[ a ].add( v );
-			}
-		}
-		
-		int matching = matching( vs );
-		if (missing == matching) {
-			return true;
-		}
-		
-		// find chordless paths from x to each y \in Y in A
-		XBitSet rest = A.unionWith( R );
-		for (int y = R.nextSetBit( 0 ); y >= 0; y = R.nextSetBit( y + 1 )) {
-			XBitSet cp = visit( g, rest, x, y );
-			if (cp == null) {
-				return false;
-			}
-			rest.andNot( cp );
-		}
-		
-		return true;
-	}
-	
-	private XBitSet visit(LabeledGraph g, XBitSet rest, int from, int to)
-	{
-		IntQueue que = new IntQueue( rest.cardinality() );
-		que.offer( from );
-		int[] prev = new int[ g.n ];
-		Arrays.fill( prev, -1 );
-		prev[ from ] = from;
-		while (que.isEmpty() == false) {
-			int v = que.poll();
-			XBitSet next = rest.intersectWith( g.neighborSet[ v ] );
-			for (int w = next.nextSetBit( 0 ); w >= 0; w = next.nextSetBit( w + 1 )) {
-				if (prev[ w ] == -1) {
-					prev[ w ] = v;
-					que.offer( w );
-					if (w == to) {
-						XBitSet path = new XBitSet( g.n );
-						while (prev[ w ] != w) {
-							path.set( w );
-							w = prev[ w ];
-						}
-						return path;
-					}
-				}
-			}
-		}
-		return null;
+		VertexDisjointPaths vdp = new VertexDisjointPaths(g, x, R, A);
+		return vdp.find(R.cardinality());
 	}
 
-	private void safeFilling(LabeledGraph g, XBitSet separator) {
+	private void safeFill(LabeledGraph g, XBitSet separator) {
 		int missing = g.countFill( separator );
 		if (missing == 0) {
 			return;
@@ -419,54 +350,46 @@ public class Solver {
 		}
 	}
 	
-	private static int matching(ArrayList< V > vs) {
-		int match = 0;
-		for (V u: vs) {
-			if (u.match == null) {
-				for (V v: vs) {
-					v.visited = false;
-				}
-				if (dfs( u )) {
-					match++;
+	private LabeledGraph eliminate(LabeledGraph g) {
+		XBitSet canEliminate = new XBitSet( g.n );
+		for (int v = 0; v < g.n; v++) {
+			XBitSet cnb = g.closedNeighborSet( v );
+			boolean flag = true;
+			for (XBitSet comp: g.getComponents( cnb )) {
+				XBitSet sep = g.neighborSet( comp );
+				if (g.isClique(sep) == false) {
+					flag = false;
+					break;
 				}
 			}
-		}
-		return match;
-	}
-	
-	private static boolean dfs(V v) {
-		v.visited = true;
-		for (V u: v) {
-			if (u.match == null || u.match.visited == false && dfs( u.match )) {
-				v.match = u;
-				u.match = v;
-				return true;
+			if (flag) {
+				canEliminate.set( v );
 			}
 		}
-		return false;
-	}
-
-	private static class V extends ArrayList< V >{
-		V match;
-		boolean visited;
+		if (canEliminate.isEmpty() == false) {
+			if (DEBUG) {
+				System.out.println("there is a vertex that does not belong to a chordless cycle.");
+			}
+			return toGraph(g, g.all.subtract(canEliminate));
+		}
+		return g;
 	}
 	
-	private static XBitSet reduceSimplicial(LabeledGraph g, XBitSet compo) {
+	private XBitSet reduceSimplicial(LabeledGraph g, XBitSet compo) {
 		XBitSet res = (XBitSet)compo.clone();
-		boolean hasSimplicial = false;
-		for (int u = compo.nextSetBit( 0 ); u >= 0; u = compo.nextSetBit( u + 1 )) {
-			if (g.isClique( compo.intersectWith( g.neighborSet[ u ] ) )) {
-				res.clear( u );
-				hasSimplicial = true;
+		boolean hasSimplicial;
+		do {
+			hasSimplicial = false;
+			for (int u = compo.nextSetBit( 0 ); u >= 0; u = compo.nextSetBit( u + 1 )) {
+				if (g.isClique( compo.intersectWith( g.neighborSet[ u ] ) )) {
+					res.clear( u );
+					hasSimplicial = true;
+				}
 			}
-		}
-		if (hasSimplicial) {
-			return reduceSimplicial( g , res );
-		} else {
-			return res;
-		}
+			compo = res;
+		} while (hasSimplicial);
+		return compo;
 	}
-
 
 	private LabeledGraph[] toGraphs(LabeledGraph g, ArrayList< XBitSet > comps)
 	{
@@ -507,12 +430,14 @@ public class Solver {
 	
 	public static void main(String[] args) throws FileNotFoundException {
 		Solver solver = new Solver();
-		String name = "100.graph";
+		String name = "13.graph";
+//		String name = args[ 0 ];
 		LabeledGraph g = Instance.read("instances/" + name);
+//		LabeledGraph g = Instance.randomGraph(300, 50);
+//		LabeledGraph g = Instance.read();
 		int n = g.n;
 		int m = g.edges();
 		long stime = System.currentTimeMillis();
-//		LabeledGraph g = Instance.read();
 		solver.solve( g );
 		long ftime = System.currentTimeMillis();
 //		solver.fillEdges.forEach(e -> System.out.println(e.first + " " + e.second));

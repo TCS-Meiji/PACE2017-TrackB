@@ -2,9 +2,6 @@ package tw.common;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Stack;
-
-import fillin.main.Instance;
 
 public class LabeledGraph extends Graph {
 	
@@ -55,20 +52,20 @@ public class LabeledGraph extends Graph {
 		for (int u = 0; u < n; u++) {
 			if (num[ u ] == 0) {
 				time = 0;
-				visitForCut( -1, u );
+				visitForBiComponent( -1, u );
 			}
 		}
 		
 		return components;
 	}
 	
-	private void visitForCut(int p, int u)
+	private void visitForBiComponent(int p, int u)
 	{
 		low[ u ] = num[ u ] = ++time;
 		st.push( u );
 		for (int v: neighbor[ u ]) {
 			if (num[ v ] == 0) {
-				visitForCut( u, v );
+				visitForBiComponent( u, v );
 				low[ u ] = Math.min( low[ u ], low[ v ] );
 				if (low[ v ] >= num[ u ]) {
 					XBitSet bcomp = new XBitSet( n );
@@ -87,11 +84,11 @@ public class LabeledGraph extends Graph {
 			}
 		}
 	}
-	
+
 	/**
-	 * computes a clique separator decomposition of this graph.
+	 * The method computes a clique separator decomposition of this graph.
 	 * This method returns an ArrayList whose elements of the form { XBitSet1, XBitSet2 }
-	 * where XBitSet2 is a clique separator and XBitSet1 is its component.
+	 * where XBitSet2 is a clique separator and XBitSet1 is the component associated to XBitSet2.
 	 * This method implements an O(nm) time algorithm given by [Tarjan 85]
 	 */
 	public ArrayList< XBitSet > decomposeByCliqueSeparators()
@@ -113,7 +110,7 @@ public class LabeledGraph extends Graph {
 				for (int u = C.nextSetBit( 0 ); u >= 0; u = C.nextSetBit( u + 1 )) {
 					visited[ u ] = true;
 				}
-				XBitSet A = separate( v, B, new XBitSet() );
+				XBitSet A = separate( v, B, new XBitSet( n ) );
 				XBitSet nB = B.subtract( C ).subtract( A );
 				if (nB.isEmpty() == false) {
 					components.add( A.unionWith( C ) );
@@ -187,7 +184,8 @@ public class LabeledGraph extends Graph {
 			
 			UnionFind uf = new UnionFind( n );
 			XBitSet replace = new XBitSet( n );
-			XBitSet smallWeight = new XBitSet( n, new int[]{ z } );
+			XBitSet smallWeight = new XBitSet( n );
+			smallWeight.set( z );
 			for (int j = 0; j <= pt; j++) {
 				for (int y = bucket[ j ].nextSetBit( 0 ); y >= 0; y = bucket[ j ].nextSetBit( y + 1 )) {
 					for (int x: neighbor[ y ]) {
@@ -247,7 +245,7 @@ public class LabeledGraph extends Graph {
 	}
 	
 	/**
-	 *  decides whether this labeled graph is chordal or not.
+	 *  The method decides whether this labeled graph is chordal or not.
 	 *  This method implements a linear time algorithm given by [Tarjan and Yannakakis 84].
 	 */
 	public boolean isChordal()
@@ -321,9 +319,6 @@ public class LabeledGraph extends Graph {
 		int deg_sum = 0;
 		for (int u = S.nextSetBit( 0 ); u >= 0; u = S.nextSetBit( u + 1 )) {
 			deg_sum += S.intersectWith( neighborSet[ u ] ).cardinality();
-			if (neighborSet[u].get(u)) {
-				deg_sum--;
-			}
 		}
 		return (size * (size - 1) - deg_sum) / 2;
 	}
@@ -336,55 +331,4 @@ public class LabeledGraph extends Graph {
 		}
 		return X.cardinality() * Y.cardinality() - deg_sum;
 	}
-	
-	public String fillEdges(XBitSet S)
-	{
-		String res = "{";
-		for (int u = S.nextSetBit( 0 ); u >= 0; u = S.nextSetBit( u + 1 )) {
-			for (int v = S.nextSetBit( u + 1 ); v >= 0; v = S.nextSetBit( v + 1 )) {
-				if (areAdjacent( u, v ) == false) {
-					res += "(" + u + ", " + v + "), ";
-				}
-			}
-		}
-		return res + "}";
-	}
-	
-	public String fillEdges(XBitSet S, XBitSet T)
-	{
-		String res = "{";
-		for (int u = S.nextSetBit( 0 ); u >= 0; u = S.nextSetBit( u + 1 )) {
-			for (int v = T.nextSetBit( 0 ); v >= 0; v = T.nextSetBit( v + 1 )) {
-				if (areAdjacent( u, v ) == false) {
-					res += "(" + u + ", " + v + "), ";
-				}
-			}
-		}
-		return res + "}";
-	}
-	
-	public boolean isVital(XBitSet S, int k)
-	{
-		return countFill( S ) <= k;
-	}
-	
-	@Override
-	public String toString() {
-		StringBuilder sb = new StringBuilder();
-		for (int v = 0; v < n; v++) {
-			for (int w = neighborSet[ v ].nextSetBit( v + 1 ); w >= 0; w = neighborSet[ v ].nextSetBit( w + 1 )) {
-//				sb.append( getLabel( v ) ).append( " " ).append( getLabel( w ) ).append( "\n" );
-				sb.append( v ).append( " " ).append( w ).append( "\n" );
-			}
-		}
-		return sb.toString();
-	}
-	
-	public static void main(String[] args) {
-		LabeledGraph g = Instance.read("instances/10.graph");
-		for (XBitSet comp: g.decomposeByCutPoints()) {
-			System.out.println( comp );
-		}
-	}
-
 }
