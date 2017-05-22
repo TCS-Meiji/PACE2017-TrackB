@@ -15,10 +15,7 @@ import tw.common.TreeDecomposition;
 import tw.common.XBitSet;
 
 public class Decomposer {
-
-	private static final boolean VERBOSE = true;
-//	private static final boolean VERBOSE = false;
-
+	
 	LabeledGraph g;
 	int lowerbound;
 
@@ -60,9 +57,6 @@ public class Decomposer {
 		// of TBlock
 		Bounds bounds = new Bounds(g);
 		lowerbound = bounds.lowerbound();
-		if (VERBOSE) {
-			System.out.println("n = " + g.n +  ", lb = " + lowerbound + ", ub = " + upperbound);
-		}
 
 		int increment = 1;
 		int start = upperbound;
@@ -109,10 +103,6 @@ public class Decomposer {
 				// have been generated
 				// (3) all PMCs whose all inbound M-blocks as in (1)
 				// have been generated
-				if (VERBOSE) {
-					System.out.println("Trying " + targetCost + "/" + tentativeUB + " TBlocks = " + tBlockMap.size());
-				}
-
 				while (true) {
 					ArrayList<PMC> toConsider = new ArrayList<>();
 					while (!pmcQueue.isEmpty()) {

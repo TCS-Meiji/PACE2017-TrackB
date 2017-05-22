@@ -1,13 +1,10 @@
 package fillin.main;
 
-import java.util.Arrays;
-
 import tw.common.LabeledGraph;
 import tw.common.XBitSet;
 
 public class Bounds {
 	private static final int MAX_CYCLE_LENGTH = 16;
-	private static final int DIRECT_SOLVING_THRESHOLD = 30;
 
 	LabeledGraph g;
 
