@@ -30,7 +30,7 @@ As for preprocessing, we use the following basic techniques.
 
 Bodlaender et al. [1] gave a sufficient condition for edges that can be safely added. They showed that if a graph has a minimal separator that has exactly one missing edge and satisfies an additional condition, then this separator can be filled into a clique without losing optimality. We generalize this condition for minimal separators that have more than one missing edges and give a polynomial time algorithm for detecting this condition (the detail will be published together with some experimental evaluations).
 
-The implemented dynamic programming basically follows the algorithm in [3]. His algorithm basically follows the algorithm of Bouchitté and Todinca [2] and computes an optimal tree decomposition without enumerating all potential maximal cliques and minimal separators. We modify the algorithm to compute a tree decomposition with minimum number of fill edges.
+The implemented dynamic programming basically follows the algorithm in [3]. His algorithm is based on the algorithm of Bouchitté and Todinca [2] and computes an optimal tree decomposition without enumerating all potential maximal cliques and minimal separators. We modify the algorithm to compute a tree decomposition with minimum number of fill edges.
 
 ## References
 [1] H.L. Bodlaender, P. Heggernes, Y. Villanger: Faster Parameterized Algorithms for Minimum Fill-In.
