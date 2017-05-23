@@ -89,7 +89,7 @@ public class Solver {
 		if (g.isChordal()) {
 			return;
 		}
-//		g = eliminate(g);
+
 		int ub = getUpperbound( g );
 		Decomposer dec = new Decomposer( g );
 		TreeDecomposition td = dec.decompose( ub );
